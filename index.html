@@ -253,8 +253,8 @@
             <button type="button" class="btn-clear no-print" onclick="resetCalculator()">🔄 Clear Everything</button>
         </div>
     </div>
-    </div>
-<script>
+                    </div>
+    <script>
     // Published CSV URL for Itemized Google Sheet Tab
     const SHEET_DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTE8Ga_ayS7dMQ3novYHY9WtJFqaIPIqopKjz6s9qT5wwsWfPGXyBhe0tuEn4eKkJz1DjK1gVbYXvgN/pub?gid=81907815&single=true&output=csv";
 
@@ -354,6 +354,12 @@
             option.innerHTML = member;
             familySelect.appendChild(option);
         });
+
+        // Add "Total (All members)" at the bottom of the list
+        let totalOption = document.createElement('option');
+        totalOption.value = "Total (All members)";
+        totalOption.innerHTML = "Total (All members)";
+        familySelect.appendChild(totalOption);
     }
 
     function handlePartySelection() {
@@ -382,13 +388,11 @@
             .map(([mem, amt]) => `• <b>${mem}:</b> ${formatINR(amt)}`)
             .join('<br>');
 
-        // Monthly Interest Rate Total Sum (% calculation)
         let chRateNum = parseRatePercent(getVal(firstRow, "Monthly IR (Cheque)"));
         let caRateNum = parseRatePercent(getVal(firstRow, "Monthly IR (Cash)"));
         let totalRateNum = chRateNum + caRateNum;
         let formattedTotalRate = (Math.round(totalRateNum * 100) / 100) + '%';
 
-        // Aggregate unique payment statuses (e.g., "Paid and Pending")
         let statuses = matchingRows.map(r => getVal(r, "Latest Due Interest Paid Status")).filter(Boolean);
         let uniqueStatuses = [...new Set(statuses)];
         let aggregatedStatus = uniqueStatuses.join(' and ');
@@ -507,12 +511,11 @@
 
         document.getElementById('results-section').classList.remove('hidden');
 
-        // Auto-Scroll directly to results
         setTimeout(() => {
             document.getElementById('results-section').scrollIntoView({ behavior: 'smooth', block: 'end' });
         }, 150);
     }
-    function handleFamilySelection() {
+        function handleFamilySelection() {
         const selectedMember = document.getElementById('family-select').value;
         if (!selectedMember) {
             document.getElementById('family-results-section').classList.add('hidden');
@@ -526,8 +529,11 @@
         const tbody = document.getElementById('family-table-body');
         tbody.innerHTML = "";
 
-        businessRecords.forEach(record => {
-            if (getVal(record, "Family Member") === selectedMember) {
+        if (selectedMember === "Total (All members)") {
+            // Option B: Group and combine by Firm Name across all members
+            let firmGroupMap = {};
+
+            businessRecords.forEach(record => {
                 let firmName = getVal(record, "Money Lent To");
                 let totalAmt = cleanNum(getVal(record, "Principal Amount"));
                 let mode = getVal(record, "CASH / CHEQUE").toLowerCase();
@@ -536,10 +542,6 @@
                 let chequeAmt = (mode === 'cash') ? 0 : totalAmt;
                 let cashAmt = (mode === 'cheque') ? 0 : totalAmt;
 
-                let mChequeRate = getVal(record, "Monthly IR (Cheque)") || '0%';
-                let mCashRate = getVal(record, "Monthly IR (Cash)") || '0%';
-                let mTotalRate = getVal(record, "Monthly IR Total") || '0%';
-
                 let fyCheque = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cheque)"));
                 let fyCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cash)"));
                 let fyTotal = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Total)"));
@@ -547,6 +549,35 @@
                 let curCheque = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Income (Cheque)"));
                 let curCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Income (Cash)"));
                 let curTotal = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Int Income (Total)"));
+
+                let pStatus = getVal(record, "Latest Due Interest Paid Status");
+
+                if (!firmGroupMap[firmName]) {
+                    firmGroupMap[firmName] = {
+                        firmName: firmName,
+                        chequeAmt: 0, cashAmt: 0, totalAmt: 0,
+                        mChequeRate: getVal(record, "Monthly IR (Cheque)") || '0%',
+                        mCashRate: getVal(record, "Monthly IR (Cash)") || '0%',
+                        mTotalRate: getVal(record, "Monthly IR Total") || '0%',
+                        fyCheque: 0, fyCash: 0, fyTotal: 0,
+                        curCheque: 0, curCash: 0, curTotal: 0,
+                        statuses: [],
+                        hasMaybe: false
+                    };
+                }
+
+                firmGroupMap[firmName].chequeAmt += chequeAmt;
+                firmGroupMap[firmName].cashAmt += cashAmt;
+                firmGroupMap[firmName].totalAmt += totalAmt;
+                firmGroupMap[firmName].fyCheque += fyCheque;
+                firmGroupMap[firmName].fyCash += fyCash;
+                firmGroupMap[firmName].fyTotal += fyTotal;
+                firmGroupMap[firmName].curCheque += curCheque;
+                firmGroupMap[firmName].curCash += curCash;
+                firmGroupMap[firmName].curTotal += curTotal;
+
+                if (pStatus) firmGroupMap[firmName].statuses.push(pStatus);
+                if (deployed === 'maybe') firmGroupMap[firmName].hasMaybe = true;
 
                 totalChequeLent += chequeAmt;
                 totalCashLent += cashAmt;
@@ -559,32 +590,97 @@
                 totalCurCheque += curCheque;
                 totalCurCash += curCash;
                 totalCurYearSum += curTotal;
+            });
 
-                let pStatus = getVal(record, "Latest Due Interest Paid Status");
-                let pStatusLower = pStatus.toLowerCase();
-                let statusBadge = `<span class="badge-green">${pStatus || 'Paid'}</span>`;
+            Object.values(firmGroupMap).forEach(group => {
+                let uniqueStatuses = [...new Set(group.statuses)];
+                let aggStatus = uniqueStatuses.join(' and ') || 'Paid';
+                let pStatusLower = aggStatus.toLowerCase();
+                let statusBadge = `<span class="badge-green">${aggStatus}</span>`;
 
                 if (pStatusLower.includes('pend') || pStatusLower.includes('overdue') || pStatusLower.includes('unpaid') || pStatusLower.includes('due')) {
-                    statusBadge = `<span class="badge-red">⚠️ ${pStatus}</span>`;
+                    statusBadge = `<span class="badge-red">⚠️ ${aggStatus}</span>`;
                 }
-                if (deployed === 'maybe') {
+                if (group.hasMaybe) {
                     statusBadge += ` <span class="badge-orange">⚠️ Maybe</span>`;
                 }
 
                 let tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td style="font-weight:600;">${firmName}</td>
-                    <td>${formatINR(chequeAmt)}</td>
-                    <td>${formatINR(cashAmt)}</td>
-                    <td style="font-weight:600;">${formatINR(totalAmt)}</td>
-                    <td>${mChequeRate} / ${mCashRate} / <b>${mTotalRate}</b></td>
-                    <td>${formatINR(fyCheque)} / ${formatINR(fyCash)} / <b>${formatINR(fyTotal)}</b></td>
-                    <td>${formatINR(curCheque)} / ${formatINR(curCash)} / <b>${formatINR(curTotal)}</b></td>
+                    <td style="font-weight:600;">${group.firmName}</td>
+                    <td>${formatINR(group.chequeAmt)}</td>
+                    <td>${formatINR(group.cashAmt)}</td>
+                    <td style="font-weight:600;">${formatINR(group.totalAmt)}</td>
+                    <td>${group.mChequeRate} / ${group.mCashRate} / <b>${group.mTotalRate}</b></td>
+                    <td>${formatINR(group.fyCheque)} / ${formatINR(group.fyCash)} / <b>${formatINR(group.fyTotal)}</b></td>
+                    <td>${formatINR(group.curCheque)} / ${formatINR(group.curCash)} / <b>${formatINR(group.curTotal)}</b></td>
                     <td>${statusBadge}</td>
                 `;
                 tbody.appendChild(tr);
-            }
-        });
+            });
+
+        } else {
+            // Single Family Member View
+            businessRecords.forEach(record => {
+                if (getVal(record, "Family Member") === selectedMember) {
+                    let firmName = getVal(record, "Money Lent To");
+                    let totalAmt = cleanNum(getVal(record, "Principal Amount"));
+                    let mode = getVal(record, "CASH / CHEQUE").toLowerCase();
+                    let deployed = getVal(record, "Currently Deployed ?").toLowerCase();
+
+                    let chequeAmt = (mode === 'cash') ? 0 : totalAmt;
+                    let cashAmt = (mode === 'cheque') ? 0 : totalAmt;
+
+                    let mChequeRate = getVal(record, "Monthly IR (Cheque)") || '0%';
+                    let mCashRate = getVal(record, "Monthly IR (Cash)") || '0%';
+                    let mTotalRate = getVal(record, "Monthly IR Total") || '0%';
+
+                    let fyCheque = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cheque)"));
+                    let fyCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cash)"));
+                    let fyTotal = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Total)"));
+
+                    let curCheque = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Income (Cheque)"));
+                    let curCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Income (Cash)"));
+                    let curTotal = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Int Income (Total)"));
+
+                    totalChequeLent += chequeAmt;
+                    totalCashLent += cashAmt;
+                    totalLentSum += totalAmt;
+
+                    totalFullCheque += fyCheque;
+                    totalFullCash += fyCash;
+                    totalFullYearSum += fyTotal;
+
+                    totalCurCheque += curCheque;
+                    totalCurCash += curCash;
+                    totalCurYearSum += curTotal;
+
+                    let pStatus = getVal(record, "Latest Due Interest Paid Status");
+                    let pStatusLower = pStatus.toLowerCase();
+                    let statusBadge = `<span class="badge-green">${pStatus || 'Paid'}</span>`;
+
+                    if (pStatusLower.includes('pend') || pStatusLower.includes('overdue') || pStatusLower.includes('unpaid') || pStatusLower.includes('due')) {
+                        statusBadge = `<span class="badge-red">⚠️ ${pStatus}</span>`;
+                    }
+                    if (deployed === 'maybe') {
+                        statusBadge += ` <span class="badge-orange">⚠️ Maybe</span>`;
+                    }
+
+                    let tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="font-weight:600;">${firmName}</td>
+                        <td>${formatINR(chequeAmt)}</td>
+                        <td>${formatINR(cashAmt)}</td>
+                        <td style="font-weight:600;">${formatINR(totalAmt)}</td>
+                        <td>${mChequeRate} / ${mCashRate} / <b>${mTotalRate}</b></td>
+                        <td>${formatINR(fyCheque)} / ${formatINR(fyCash)} / <b>${formatINR(fyTotal)}</b></td>
+                        <td>${formatINR(curCheque)} / ${formatINR(curCash)} / <b>${formatINR(curTotal)}</b></td>
+                        <td>${statusBadge}</td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            });
+        }
 
         document.getElementById('fam-cheque-lent').innerText = formatINR(totalChequeLent);
         document.getElementById('fam-cash-lent').innerText = formatINR(totalCashLent);
@@ -696,7 +792,11 @@
         const selectedMember = document.getElementById('family-select').value;
         if (!selectedMember) return;
 
-        const summaryText = `📊 *Portfolio Summary - ${selectedMember}*\n` +
+        let titleStr = (selectedMember === "Total (All members)") 
+            ? "Portfolio Summary - Overall Total" 
+            : `Portfolio Summary - ${selectedMember}`;
+
+        const summaryText = `📊 *${titleStr}*\n` +
             `• Cheque Money Lent: ${document.getElementById('fam-cheque-lent').innerText}\n` +
             `• Cash Money Lent: ${document.getElementById('fam-cash-lent').innerText}\n` +
             `• Total Money Lent: ${document.getElementById('fam-total-lent').innerText}\n` +
@@ -705,7 +805,7 @@
             `Calculated via Ajay Family Interest Calculator`;
 
         if (navigator.share) {
-            navigator.share({ title: `Portfolio Summary - ${selectedMember}`, text: summaryText }).catch(() => {});
+            navigator.share({ title: titleStr, text: summaryText }).catch(() => {});
         } else {
             navigator.clipboard.writeText(summaryText).then(() => alert("Copied to clipboard!"));
         }
@@ -717,3 +817,4 @@
 </script>
 </body>
 </html>
+    
