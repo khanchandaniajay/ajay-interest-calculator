@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interest Calculator Portal</title>
+    <title>Ajay Family Interest Calculator</title>
     <!-- PapaParse library to cleanly convert your Google Sheet URL into data blocks -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     
@@ -29,9 +29,9 @@
         .action-btn-group { margin-top: 20px; display: flex; gap: 10px; }
         .btn-share { flex: 1; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; text-align: center; }
         .btn-print { flex: 1; padding: 12px; background: #0f172a; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; text-align: center; }
-        .btn-share:active, .btn-print:active { opacity: 0.85; }
+        .btn-clear { width: 100%; margin-top: 10px; padding: 12px; background: #dc2626; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; text-align: center; }
+        .btn-share:active, .btn-print:active, .btn-clear:active { opacity: 0.85; }
 
-        /* Clean Print-to-PDF Stylesheet */
         @media print {
             body { background: white; padding: 0; }
             .container { box-shadow: none; padding: 0; max-width: 100%; }
@@ -43,7 +43,7 @@
 <body>
 
 <div class="container">
-    <h2>Firm Interest Calculator</h2>
+    <h2>Ajay Family Interest Calculator</h2>
     
     <!-- STEP 1: FIRM SELECTION -->
     <div class="form-group no-print">
@@ -138,15 +138,14 @@
             <span id="res-net-total" class="highlight-green">₹0</span>
         </div>
 
-        <!-- SHARE & PRINT ACTION BUTTONS -->
+        <!-- ACTION BUTTONS -->
         <div class="action-btn-group no-print">
             <button type="button" class="btn-share" onclick="shareSummary()">📲 Share Summary</button>
             <button type="button" class="btn-print" onclick="printSummary()">🖨️ Save PDF / Print</button>
         </div>
+        <button type="button" class="btn-clear no-print" onclick="resetCalculator()">🔄 Clear Everything</button>
     </div>
-</div>
-
-<script>
+</div><script>
     const SHEET_DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTE8Ga_ayS7dMQ3novYHY9WtJFqaIPIqopKjz6s9qT5wwsWfPGXyBhe0tuEn4eKkJz1DjK1gVbYXvgN/pub?gid=1347068592&single=true&output=csv";
 
     let businessRecords = [];
@@ -223,7 +222,6 @@
         });
     }
 
-    // UPDATED ENGINE: Preserves formatted percentages (%) as well as currency signs and commas
     function renderDirectTabValue(rawCellVal) {
         if (!rawCellVal || rawCellVal.toString().trim() === "") return '₹0';
         let cleanVal = rawCellVal.toString().trim();
@@ -242,10 +240,7 @@
     function handlePartySelection() {
         const selectedIndex = document.getElementById('party-select').value;
         if (!selectedIndex) {
-            document.getElementById('details-card').classList.add('hidden');
-            document.getElementById('mitesh-section').classList.add('hidden');
-            document.getElementById('standard-date-section').classList.add('hidden');
-            document.getElementById('results-section').classList.add('hidden');
+            resetCalculator();
             return;
         }
 
@@ -424,10 +419,26 @@
 
         document.getElementById('results-section').classList.remove('hidden');
 
-        // Smooth Auto-Scroll
         setTimeout(() => {
             document.getElementById('results-section').scrollIntoView({ behavior: 'smooth', block: 'end' });
         }, 150);
+    }
+
+    function resetCalculator() {
+        document.getElementById('party-select').value = "";
+        document.getElementById('quarter-select').value = "";
+        document.getElementById('start-date').value = "";
+        document.getElementById('end-date').value = "";
+        document.getElementById('end-date').removeAttribute('min');
+
+        document.getElementById('details-card').classList.add('hidden');
+        document.getElementById('mitesh-section').classList.add('hidden');
+        document.getElementById('standard-date-section').classList.add('hidden');
+        document.getElementById('results-section').classList.add('hidden');
+        document.getElementById('mitesh-days-wrapper').classList.add('hidden');
+        document.getElementById('days-display-wrapper').classList.add('hidden');
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function shareSummary() {
@@ -458,7 +469,7 @@
             `• *Cash Interest:* ${cashVal}\n` +
             `• *Gross Total Interest:* ${grossTotal}\n` +
             `✅ *Net Total Interest:* ${netTotal}\n\n` +
-            `Calculated via Family Interest Portal`;
+            `Calculated via Ajay Family Interest Calculator`;
 
         if (navigator.share) {
             navigator.share({
@@ -478,3 +489,4 @@
 </script>
 </body>
 </html>
+
