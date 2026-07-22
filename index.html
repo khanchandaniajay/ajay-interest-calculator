@@ -27,12 +27,14 @@
         .info-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; color: #475569; border-bottom: 1px dashed #f1f5f9; padding-bottom: 4px; align-items: center; }
         .info-value { font-weight: 600; color: #0f172a; text-align: right; max-width: 65%; word-break: break-word; }
         
-        /* Excel-Style 2-Column Alignments for Family Summary */
-        .row-left { display: flex; justify-content: flex-start; gap: 8px; margin-bottom: 6px; font-size: 13px; color: #475569; border-bottom: 1px dashed #f1f5f9; padding-bottom: 4px; text-align: left; }
-        .row-left .val { font-weight: 600; color: #0f172a; }
+        /* Strict Excel-Style 2-Column Grid Alignment for Family Summary */
+        .summary-grid-row { display: grid; grid-template-columns: 55% 45%; align-items: center; padding: 6px 4px; font-size: 13px; border-bottom: 1px dashed #f1f5f9; }
+        .summary-grid-row.left-align .col-label { text-align: left; font-weight: 500; color: #475569; }
+        .summary-grid-row.left-align .col-val { text-align: left; font-weight: 600; color: #0f172a; }
 
-        .row-right { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; margin-top: 4px; font-size: 13px; color: #065f46; padding: 8px; border-radius: 6px; background-color: #dcfce7; border: 1px solid #bbf7d0; font-weight: 700; text-align: right; }
-        .row-right .val { font-weight: 700; color: #15803d; }
+        .summary-grid-row.total-row-green { display: grid; grid-template-columns: 55% 45%; align-items: center; padding: 8px 6px; font-size: 13px; background-color: #dcfce7; border: 1px solid #bbf7d0; border-radius: 6px; margin-top: 4px; margin-bottom: 10px; }
+        .summary-grid-row.total-row-green .col-label { text-align: right; font-weight: 700; color: #065f46; padding-right: 8px; }
+        .summary-grid-row.total-row-green .col-val { text-align: right; font-weight: 700; color: #15803d; }
 
         .results-card { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin-top: 15px; scroll-margin-bottom: 20px; }
         .result-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: #1e293b; }
@@ -89,16 +91,25 @@
 
         <div id="details-card" class="card hidden">
             <div class="card-title">Firm Account Details</div>
-            <div class="info-row" style="background: #eff6ff; padding: 6px; border-radius: 6px; flex-direction: column; align-items: flex-start; margin-bottom: 10px;">
+            
+            <!-- FIELD 1: TOTAL DEPLOYED PRINCIPAL -->
+            <div class="info-row" style="background: #f8fafc; padding: 6px; border-radius: 6px;">
+                <span>Total Deployed Principal:</span>
+                <span class="info-value" id="info-amount" style="font-size: 15px; color: #0f172a; font-weight:700;">-</span>
+            </div>
+
+            <!-- FIELD 2: FAMILY MEMBER CONTRIBUTION SPLIT -->
+            <div class="info-row" style="background: #eff6ff; padding: 6px; border-radius: 6px; flex-direction: column; align-items: flex-start; margin-top: 6px; margin-bottom: 10px;">
                 <span style="font-size: 12px; font-weight: 700; color: #1e40af;">Family Member Contribution Split:</span>
                 <span class="info-value" id="info-family-split" style="max-width: 100%; text-align: left; font-size: 13px; margin-top: 3px; color: #1e293b;">-</span>
             </div>
+
+            <!-- FIELD 3+: OTHER ACCOUNT DETAILS -->
             <div class="info-row"><span>Broker:</span><span class="info-value" id="info-broker">-</span></div>
             <div class="info-row"><span>Start date (Current FY):</span><span class="info-value" id="info-fy-start">-</span></div>
-            <div class="info-row"><span>Total Deployed Principal:</span><span class="info-value" id="info-amount">-</span></div>
             <div class="info-row"><span>Monthly Cheque Rate:</span><span class="info-value" id="info-cheque-rate">-</span></div>
             <div class="info-row"><span>Monthly Cash Rate:</span><span class="info-value" id="info-cash-rate">-</span></div>
-            <div class="info-row" style="background: #f1f5f9; padding: 4px 6px;"><span>Monthly Interest (total):</span><span class="info-value" id="info-monthly-total" style="color: #2563eb; font-weight:700;">-</span></div>
+            <div class="info-row" style="background: #f1f5f9; padding: 4px 6px;"><span>Monthly Interest Rate Total:</span><span class="info-value" id="info-monthly-rate-total" style="color: #2563eb; font-weight:700;">-</span></div>
             <div class="info-row"><span>Interest Frequency:</span><span class="info-value" id="info-frequency">-</span></div>
             <div class="info-row"><span>TDS Applicable:</span><span class="info-value" id="info-tds">-</span></div>
             <div class="info-row" style="background: #f8fafc; padding: 4px 6px;"><span>Payment Status:</span><span class="info-value" id="info-payment-status" style="font-weight:700;">-</span></div>
@@ -169,17 +180,45 @@
             <!-- PORTFOLIO SUMMARY CARD -->
             <div class="card">
                 <div class="card-title">Portfolio Summary</div>
-                <div class="row-left"><span>Cheque money lent:</span><span class="val" id="fam-cheque-lent">₹0</span></div>
-                <div class="row-left"><span>Cash money lent:</span><span class="val" id="fam-cash-lent">₹0</span></div>
-                <div class="row-right"><span>Total money lent:</span><span class="val" id="fam-total-lent">₹0</span></div>
                 
-                <div class="row-left" style="margin-top: 8px;"><span>Full year cheque interest:</span><span class="val" id="fam-fy-cheque">₹0</span></div>
-                <div class="row-left"><span>Full year cash interest:</span><span class="val" id="fam-fy-cash">₹0</span></div>
-                <div class="row-right"><span>Full year total interest:</span><span class="val" id="fam-fy-total">₹0</span></div>
+                <div class="summary-grid-row left-align">
+                    <span class="col-label">Cheque money lent:</span>
+                    <span class="col-val" id="fam-cheque-lent">₹0</span>
+                </div>
+                <div class="summary-grid-row left-align">
+                    <span class="col-label">Cash money lent:</span>
+                    <span class="col-val" id="fam-cash-lent">₹0</span>
+                </div>
+                <div class="summary-grid-row total-row-green">
+                    <span class="col-label">Total money lent:</span>
+                    <span class="col-val" id="fam-total-lent">₹0</span>
+                </div>
 
-                <div class="row-left" style="margin-top: 8px;"><span>Current FY cheque interest:</span><span class="val" id="fam-cur-cheque">₹0</span></div>
-                <div class="row-left"><span>Current FY cash interest:</span><span class="val" id="fam-cur-cash">₹0</span></div>
-                <div class="row-right"><span>Current FY total interest:</span><span class="val" id="fam-cur-total">₹0</span></div>
+                <div class="summary-grid-row left-align" style="margin-top: 6px;">
+                    <span class="col-label">Full year cheque interest:</span>
+                    <span class="col-val" id="fam-fy-cheque">₹0</span>
+                </div>
+                <div class="summary-grid-row left-align">
+                    <span class="col-label">Full year cash interest:</span>
+                    <span class="col-val" id="fam-fy-cash">₹0</span>
+                </div>
+                <div class="summary-grid-row total-row-green">
+                    <span class="col-label">Full year total interest:</span>
+                    <span class="col-val" id="fam-fy-total">₹0</span>
+                </div>
+
+                <div class="summary-grid-row left-align" style="margin-top: 6px;">
+                    <span class="col-label">Current FY cheque interest:</span>
+                    <span class="col-val" id="fam-cur-cheque">₹0</span>
+                </div>
+                <div class="summary-grid-row left-align">
+                    <span class="col-label">Current FY cash interest:</span>
+                    <span class="col-val" id="fam-cur-cash">₹0</span>
+                </div>
+                <div class="summary-grid-row total-row-green">
+                    <span class="col-label">Current FY total interest:</span>
+                    <span class="col-val" id="fam-cur-total">₹0</span>
+                </div>
             </div>
 
             <!-- ITEMIZED FIRM TABLE (ITEM J) -->
@@ -215,7 +254,7 @@
         </div>
     </div>
     </div>
-    <script>
+<script>
     // Published CSV URL for Itemized Google Sheet Tab
     const SHEET_DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTE8Ga_ayS7dMQ3novYHY9WtJFqaIPIqopKjz6s9qT5wwsWfPGXyBhe0tuEn4eKkJz1DjK1gVbYXvgN/pub?gid=81907815&single=true&output=csv";
 
@@ -227,7 +266,6 @@
             header: true,
             skipEmptyLines: true,
             complete: function(parsed) {
-                // Filter out 'Cheque Bad' and 'Currently Deployed ?' == 'No'
                 businessRecords = parsed.data.filter(row => {
                     let mode = getVal(row, "CASH / CHEQUE").toLowerCase();
                     let deployed = getVal(row, "Currently Deployed ?").toLowerCase();
@@ -264,6 +302,13 @@
         if (cleaned.includes('%')) return parseFloat(cleaned.replace('%', '')) / 100;
         let parsed = parseFloat(cleaned);
         return isNaN(parsed) ? 0 : parsed;
+    }
+
+    function parseRatePercent(rateStr) {
+        if (!rateStr) return 0;
+        let cleaned = rateStr.toString().replace(/[^0-9.%-]/g, "");
+        let num = parseFloat(cleaned);
+        return isNaN(num) ? 0 : num;
     }
 
     function formatINR(num) {
@@ -337,22 +382,32 @@
             .map(([mem, amt]) => `• <b>${mem}:</b> ${formatINR(amt)}`)
             .join('<br>');
 
+        // Monthly Interest Rate Total Sum (% calculation)
+        let chRateNum = parseRatePercent(getVal(firstRow, "Monthly IR (Cheque)"));
+        let caRateNum = parseRatePercent(getVal(firstRow, "Monthly IR (Cash)"));
+        let totalRateNum = chRateNum + caRateNum;
+        let formattedTotalRate = (Math.round(totalRateNum * 100) / 100) + '%';
+
+        // Aggregate unique payment statuses (e.g., "Paid and Pending")
+        let statuses = matchingRows.map(r => getVal(r, "Latest Due Interest Paid Status")).filter(Boolean);
+        let uniqueStatuses = [...new Set(statuses)];
+        let aggregatedStatus = uniqueStatuses.join(' and ');
+
         let fullChequeTotal = matchingRows.reduce((sum, r) => sum + cleanNum(getVal(r, "Full Yr 365 Days Int (Cheque)")), 0);
         let fullCashTotal = matchingRows.reduce((sum, r) => sum + cleanNum(getVal(r, "Full Yr 365 Days Int (Cash)")), 0);
         let fullGrandTotal = matchingRows.reduce((sum, r) => sum + cleanNum(getVal(r, "Full Yr 365 Days Int (Total)")), 0);
-        let monthlyIntTotal = matchingRows.reduce((sum, r) => sum + cleanNum(getVal(r, "Monthly Int (Total)")), 0);
 
+        document.getElementById('info-amount').innerText = formatINR(totalPrincipal);
         document.getElementById('info-family-split').innerHTML = familySplitText || 'N/A';
         document.getElementById('info-broker').innerText = rawBroker || 'N/A';
         document.getElementById('info-fy-start').innerText = getVal(firstRow, "Start Date (Current FY)") || 'N/A';
-        document.getElementById('info-amount').innerText = formatINR(totalPrincipal);
         document.getElementById('info-cheque-rate').innerText = getVal(firstRow, "Monthly IR (Cheque)") || '0%';
         document.getElementById('info-cash-rate').innerText = getVal(firstRow, "Monthly IR (Cash)") || '0%';
+        document.getElementById('info-monthly-rate-total').innerText = formattedTotalRate;
         document.getElementById('info-frequency').innerText = getVal(firstRow, "Interest Due Frequency") || 'N/A';
         document.getElementById('info-tds').innerText = isTdsYes ? 'Yes (10%)' : 'No';
-        document.getElementById('info-payment-status').innerText = getVal(firstRow, "Latest Due Interest Paid Status") || 'N/A';
+        document.getElementById('info-payment-status').innerText = aggregatedStatus || 'N/A';
 
-        document.getElementById('info-monthly-total').innerText = formatINR(monthlyIntTotal);
         document.getElementById('info-full-cheque').innerText = formatINR(fullChequeTotal);
         document.getElementById('info-full-cash').innerText = formatINR(fullCashTotal);
         document.getElementById('info-full-total').innerText = formatINR(fullGrandTotal);
@@ -452,12 +507,12 @@
 
         document.getElementById('results-section').classList.remove('hidden');
 
-        // Smooth Auto-Scroll to Results
+        // Auto-Scroll directly to results
         setTimeout(() => {
             document.getElementById('results-section').scrollIntoView({ behavior: 'smooth', block: 'end' });
         }, 150);
     }
-        function handleFamilySelection() {
+    function handleFamilySelection() {
         const selectedMember = document.getElementById('family-select').value;
         if (!selectedMember) {
             document.getElementById('family-results-section').classList.add('hidden');
@@ -662,4 +717,3 @@
 </script>
 </body>
 </html>
-    
