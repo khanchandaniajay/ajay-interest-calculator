@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interest Calculator Portal</title>
+    <!-- PapaParse library to cleanly convert your Google Sheet URL into data blocks -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f0f4f8; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { background: white; padding: 35px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); max-width: 500px; width: 100%; box-sizing: border-box; }
+        h2 { text-align: center; color: #0f172a; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; font-size: 24px; }
+        .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; margin-bottom: 20px; }
+        .card-title { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 12px; font-weight: 700; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #334155; font-size: 15px; }
+        select, input[type="date"] { width: 100%; padding: 14px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 16px; background-color: #fff; color: #1e293b; -webkit-appearance: none; }
+        select:focus, input[type="date"]:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .hidden { display: none; }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; color: #475569; border-bottom: 1px dashed #f1f5f9; padding-bottom: 4px; align-items: center; }
+        .info-value { font-weight: 600; color: #0f172a; text-align: right; max-width: 60%; word-break: break-word; }
+        .results-card { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; scroll-margin-bottom: 20px; }
+        .result-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 15px; color: #1e293b; }
+        .total-row { border-top: 2px dashed #bbf7d0; padding-top: 12px; margin-top: 12px; font-size: 18px; }
+        .highlight-green { font-weight: 700; color: #16a34a; font-size: 20px; }
+        .days-box { background: #fef08a; color: #854d0e; padding: 12px; border-radius: 8px; text-align: center; font-weight: 700; margin-top: 8px; margin-bottom: 8px; font-size: 16px; border: 1px solid #fde047; box-shadow: 0 2px 8px rgba(253, 224, 71, 0.3); }
+        
+        .action-btn-group { margin-top: 20px; display: flex; gap: 10px; }
+        .btn-share { flex: 1; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; text-align: center; }
+        .btn-print { flex: 1; padding: 12px; background: #0f172a; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; text-align: center; }
+        .btn-share:active, .btn-print:active { opacity: 0.85; }
+
+        /* Clean Print-to-PDF Stylesheet */
+        @media print {
+            body { background: white; padding: 0; }
+            .container { box-shadow: none; padding: 0; max-width: 100%; }
+            .no-print { display: none !important; }
+            .card, .results-card { border: 1px solid #ccc !important; background: white !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Firm Interest Calculator</h2>
+    
+    <!-- STEP 1: FIRM SELECTION -->
+    <div class="form-group no-print">
+        <label for="party-select">1. Select Firm Name</label>
+        <select id="party-select" onchange="handlePartySelection()">
+            <option value="">-- Loading Firms... --</option>
+        </select>
+    </div>
+
+    <!-- STEP 2: AUTO-POPULATED DETAILS CARD -->
+    <div id="details-card" class="card hidden">
+        <div class="card-title">Firm Account Details</div>
+        <div class="info-row"><span>Family ac lent from:</span><span class="info-value" id="info-family-ac">-</span></div>
+        <div class="info-row"><span>Broker:</span><span class="info-value" id="info-broker">-</span></div>
+        <div class="info-row"><span>Start date (Current FY):</span><span class="info-value" id="info-fy-start">-</span></div>
+        <div class="info-row"><span>Amount:</span><span class="info-value" id="info-amount">-</span></div>
+        <div class="info-row"><span>Cheque Interest rate (monthly):</span><span class="info-value" id="info-cheque-rate">-</span></div>
+        <div class="info-row"><span>Cash Interest rate (monthly):</span><span class="info-value" id="info-cash-rate">-</span></div>
+        <div class="info-row" style="background: #eff6ff; padding: 4px 6px; border-radius: 4px;"><span>Monthly Interest (total):</span><span class="info-value" id="info-monthly-total" style="color: #2563eb; font-weight:700;">-</span></div>
+        <div class="info-row"><span>Interest Frequency:</span><span class="info-value" id="info-frequency">-</span></div>
+        <div class="info-row"><span>TDS Applicable:</span><span class="info-value" id="info-tds">-</span></div>
+        <div class="info-row"><span>TDS Rate:</span><span class="info-value" id="info-tds-rate">-</span></div>
+        <div class="info-row" style="background: #f8fafc; padding: 4px 6px; border-radius: 4px;"><span>Payment Status (Latest):</span><span class="info-value" id="info-payment-status" style="font-weight:700;">-</span></div>
+        <div class="info-row" style="background: #fdf8f6; padding: 4px 6px; border-radius: 4px;"><span>Full Year Interest (cheque):</span><span class="info-value" id="info-full-cheque" style="color:#b45309;">-</span></div>
+        <div class="info-row" style="background: #fdf8f6; padding: 4px 6px; border-radius: 4px;"><span>Full Year Interest (cash):</span><span class="info-value" id="info-full-cash" style="color:#b45309;">-</span></div>
+        <div class="info-row" style="background: #f0fdf4; padding: 6px 6px; border-radius: 4px; border-bottom: none;"><span>Full Year Interest (total):</span><span class="info-value" id="info-full-total" style="color: #16a34a; font-weight:700;">-</span></div>
+    </div>
+
+    <!-- STEP 3: MITESH CONDITIONAL QUARTER SELECTION -->
+    <div id="mitesh-section" class="card hidden">
+        <div class="card-title">Select Operational Quarter</div>
+        <div class="form-group no-print">
+            <label for="quarter-select">Choose Quarter Period</label>
+            <select id="quarter-select" onchange="processCalculations()">
+                <option value="">-- Select Quarter --</option>
+                <option value="90">Q1: Apr-Jun</option>
+                <option value="90">Q2: Jul-Sep</option>
+                <option value="90">Q3: Oct-Dec</option>
+                <option value="95">Q4: Jan-Mar</option>
+                <option value="96">Q4: Jan-Mar (Leap Yr)</option>
+            </select>
+        </div>
+        <div id="mitesh-days-wrapper" class="hidden">
+            <div class="days-box" id="mitesh-days-text">Number of Days: 0</div>
+        </div>
+    </div>
+
+    <!-- STEP 4: STANDARD CONDITIONAL DATE PICKER -->
+    <div id="standard-date-section" class="card hidden">
+        <div class="card-title">Select Calculation Range</div>
+        
+        <div class="form-group no-print">
+            <label for="start-date">Select Start Date</label>
+            <input type="date" id="start-date" onchange="handleStartDateChange()">
+        </div>
+        
+        <div class="form-group no-print">
+            <label for="end-date">Select End Date</label>
+            <input type="date" id="end-date" onchange="processCalculations()">
+        </div>
+
+        <div id="days-display-wrapper" class="hidden">
+            <div class="days-box" id="calculated-days-text">Number of Days: 0</div>
+        </div>
+    </div>
+
+    <!-- STEP 5: LIVE COMPUTATION GENERATOR CARD -->
+    <div id="results-section" class="results-card hidden">
+        <div class="card-title" style="color: #14532d;">Live Interest Computation</div>
+        <div class="result-row">
+            <span>Cheque Gross Interest:</span>
+            <span id="res-cheque-gross" style="font-weight:600;">₹0</span>
+        </div>
+        <div class="result-row">
+            <span>Cheque TDS Deducted:</span>
+            <span id="res-cheque-tds" style="color: #b91c1c; font-weight:600;">₹0</span>
+        </div>
+        <div class="result-row" style="padding-bottom: 8px; border-bottom: 1px dashed #bbf7d0;">
+            <span>Cheque Net Interest:</span>
+            <span id="res-cheque-net" style="font-weight:600; color: #1e293b;">₹0</span>
+        </div>
+        <div class="result-row" style="margin-top: 8px; padding-bottom: 8px; border-bottom: 1px dashed #bbf7d0;">
+            <span>Cash Interest Amount:</span>
+            <span id="res-cash-interest" style="font-weight:600;">₹0</span>
+        </div>
+        <div class="result-row total-row">
+            <span>Gross Total Interest:</span>
+            <span id="res-gross-total" style="font-weight:700; color: #1e293b;">₹0</span>
+        </div>
+        <div class="result-row" style="font-size: 20px; font-weight: 700; margin-top: 4px;">
+            <span>Net Total Interest:</span>
+            <span id="res-net-total" class="highlight-green">₹0</span>
+        </div>
+
+        <!-- SHARE & PRINT ACTION BUTTONS -->
+        <div class="action-btn-group no-print">
+            <button type="button" class="btn-share" onclick="shareSummary()">📲 Share Summary</button>
+            <button type="button" class="btn-print" onclick="printSummary()">🖨️ Save PDF / Print</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const SHEET_DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTE8Ga_ayS7dMQ3novYHY9WtJFqaIPIqopKjz6s9qT5wwsWfPGXyBhe0tuEn4eKkJz1DjK1gVbYXvgN/pub?gid=1347068592&single=true&output=csv";
+
+    let businessRecords = [];
+
+    window.onload = function() {
+        Papa.parse(SHEET_DATA_URL, {
+            download: true,
+            header: true,
+            skipEmptyLines: true,
+            complete: function(parsed) {
+                businessRecords = parsed.data;
+                initDropdown();
+            },
+            error: function(err) {
+                alert("Error reading Google Sheet data.");
+            }
+        });
+    };
+
+    function handleStartDateChange() {
+        const startValue = document.getElementById('start-date').value;
+        const endDateInput = document.getElementById('end-date');
+        
+        if (startValue) {
+            let selectedDate = new Date(startValue);
+            selectedDate.setDate(selectedDate.getDate() + 1);
+            
+            let yyyy = selectedDate.getFullYear();
+            let mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
+            let dd = String(selectedDate.getDate()).padStart(2, '0');
+            let formattedMinDate = `${yyyy}-${mm}-${dd}`;
+            
+            endDateInput.min = formattedMinDate;
+            
+            if (endDateInput.value && endDateInput.value < formattedMinDate) {
+                endDateInput.value = "";
+                document.getElementById('days-display-wrapper').classList.add('hidden');
+                document.getElementById('results-section').classList.add('hidden');
+            }
+        }
+        processCalculations();
+    }
+
+    function getSmartValue(row, keywordLabels, fallbackToFirstColumn = false) {
+        const keys = Object.keys(row);
+        if (keys.length === 0) return '';
+        if (fallbackToFirstColumn) return row[keys[0]];
+        
+        for (let i = 1; i < keys.length; i++) {
+            let key = keys[i];
+            let kLow = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+            for (let label of keywordLabels) {
+                let normalizedLabel = label.toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (kLow.includes(normalizedLabel)) {
+                    return row[key];
+                }
+            }
+        }
+        return '';
+    }
+
+    function initDropdown() {
+        const selectElement = document.getElementById('party-select');
+        selectElement.innerHTML = '<option value="">-- Choose a Firm --</option>';
+        
+        businessRecords.forEach((record, index) => {
+            let firmName = getSmartValue(record, ['party', 'firm', 'name'], true);
+            if (firmName && firmName.trim() !== "") {
+                let option = document.createElement('option');
+                option.value = index;
+                option.innerHTML = firmName.trim();
+                selectElement.appendChild(option);
+            }
+        });
+    }
+
+    // UPDATED ENGINE: Preserves formatted percentages (%) as well as currency signs and commas
+    function renderDirectTabValue(rawCellVal) {
+        if (!rawCellVal || rawCellVal.toString().trim() === "") return '₹0';
+        let cleanVal = rawCellVal.toString().trim();
+        
+        if (cleanVal.includes('%') || cleanVal.includes('₹') || cleanVal.toLowerCase().includes('rs') || cleanVal.includes(',')) {
+            return cleanVal;
+        }
+        
+        let standardNum = parseFloat(cleanVal.replace(/[^0-9.-]+/g,""));
+        if (!isNaN(standardNum)) {
+            return formatToIndianCurrency(standardNum);
+        }
+        return cleanVal;
+    }
+
+    function handlePartySelection() {
+        const selectedIndex = document.getElementById('party-select').value;
+        if (!selectedIndex) {
+            document.getElementById('details-card').classList.add('hidden');
+            document.getElementById('mitesh-section').classList.add('hidden');
+            document.getElementById('standard-date-section').classList.add('hidden');
+            document.getElementById('results-section').classList.add('hidden');
+            return;
+        }
+
+        const activeRow = businessRecords[selectedIndex];
+        const rawBroker = getSmartValue(activeRow, ['broker']).trim();
+        const tdsField = getSmartValue(activeRow, ['tds']).trim().toLowerCase();
+        const isTdsYes = (tdsField === 'yes' || tdsField === 'y' || tdsField === '1');
+
+        const familyAc = getSmartValue(activeRow, ['family', 'lentfrom', 'ownaccount']);
+        const fyStart = getSmartValue(activeRow, ['startdate', 'fy', 'currentfy', 'financialyear']);
+
+        let fullChequeRaw = '';
+        let fullCashRaw = '';
+        let fullTotalRaw = '';
+        let monthlyTotalRaw = '';
+        let paymentStatusRaw = '';
+
+        Object.keys(activeRow).forEach((key, idx) => {
+            if (idx === 0) return; 
+            let kLow = key.toLowerCase();
+            let hasYearContext = (kLow.includes('full') || kLow.includes('year') || kLow.includes('annual'));
+            let hasMonthContext = (kLow.includes('month') || kLow.includes('monthly'));
+
+            if (hasYearContext && (kLow.includes('cheq') || kLow.includes('cheque'))) fullChequeRaw = activeRow[key];
+            if (hasYearContext && kLow.includes('cash')) fullCashRaw = activeRow[key];
+            if (hasYearContext && kLow.includes('total')) fullTotalRaw = activeRow[key];
+
+            if (hasMonthContext && (kLow.includes('total') || kLow.includes('sum') || kLow.includes('interest'))) {
+                monthlyTotalRaw = activeRow[key];
+            }
+
+            if (kLow.includes('payment') || kLow.includes('status') || kLow.includes('latest')) {
+                paymentStatusRaw = activeRow[key];
+            }
+        });
+
+        if (!monthlyTotalRaw) monthlyTotalRaw = getSmartValue(activeRow, ['monthlytotal', 'monthlyinteresttotal', 'monthtotal']);
+        if (!paymentStatusRaw) paymentStatusRaw = getSmartValue(activeRow, ['paymentstatus', 'status', 'payment']);
+
+        document.getElementById('info-family-ac').innerText = familyAc || 'N/A';
+        document.getElementById('info-broker').innerText = rawBroker || 'N/A';
+        document.getElementById('info-fy-start').innerText = fyStart || 'N/A';
+        document.getElementById('info-amount').innerText = formatToIndianCurrency(cleanNumericString(getSmartValue(activeRow, ['amount', 'principal'])));
+        document.getElementById('info-cheque-rate').innerText = getSmartValue(activeRow, ['cheq', 'cheque']) || '0%';
+        document.getElementById('info-cash-rate').innerText = getSmartValue(activeRow, ['cash']) || '0%';
+        document.getElementById('info-frequency').innerText = getSmartValue(activeRow, ['frequency', 'due', 'period']) || 'N/A';
+        document.getElementById('info-tds').innerText = isTdsYes ? 'Yes' : 'No';
+        document.getElementById('info-tds-rate').innerText = isTdsYes ? '10%' : '0%';
+        
+        document.getElementById('info-monthly-total').innerText = renderDirectTabValue(monthlyTotalRaw);
+        
+        let psElem = document.getElementById('info-payment-status');
+        let pStatusText = paymentStatusRaw ? paymentStatusRaw.trim() : 'N/A';
+        psElem.innerText = pStatusText;
+        if (pStatusText.toLowerCase().includes('paid')) {
+            psElem.style.color = '#16a34a';
+        } else if (pStatusText.toLowerCase().includes('pend')) {
+            psElem.style.color = '#dc2626';
+        } else {
+            psElem.style.color = '#2563eb';
+        }
+
+        document.getElementById('info-full-cheque').innerText = renderDirectTabValue(fullChequeRaw);
+        document.getElementById('info-full-cash').innerText = renderDirectTabValue(fullCashRaw);
+        document.getElementById('info-full-total').innerText = renderDirectTabValue(fullTotalRaw);
+        
+        document.getElementById('details-card').classList.remove('hidden');
+
+        document.getElementById('quarter-select').value = "";
+        document.getElementById('start-date').value = "";
+        document.getElementById('end-date').value = "";
+        document.getElementById('end-date').removeAttribute('min');
+        
+        document.getElementById('days-display-wrapper').classList.add('hidden');
+        document.getElementById('mitesh-days-wrapper').classList.add('hidden');
+        document.getElementById('results-section').classList.add('hidden');
+
+        if (rawBroker.toLowerCase() === 'mitesh') {
+            document.getElementById('mitesh-section').classList.remove('hidden');
+            document.getElementById('standard-date-section').classList.add('hidden');
+        } else {
+            document.getElementById('standard-date-section').classList.remove('hidden');
+            document.getElementById('mitesh-section').classList.add('hidden');
+        }
+    }
+
+    function cleanNumericString(inputVal) {
+        if (!inputVal) return 0;
+        let cleaned = inputVal.toString().replace(/[^0-9.%-]/g, "");
+        if (cleaned.includes('%')) {
+            return parseFloat(cleaned.replace('%', '')) / 100;
+        }
+        let parsedNum = parseFloat(cleaned);
+        return isNaN(parsedNum) ? 0 : parsedNum;
+    }
+
+    function formatToIndianCurrency(numericAmount) {
+        if (numericAmount === 0) return '₹0';
+        return new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            maximumFractionDigits: 0
+        }).format(numericAmount);
+    }
+
+    function processCalculations() {
+        const selectedIndex = document.getElementById('party-select').value;
+        if (!selectedIndex) return;
+
+        const activeRow = businessRecords[selectedIndex];
+        const rawBroker = getSmartValue(activeRow, ['broker']).trim().toLowerCase();
+        let finalDays = 0;
+
+        if (rawBroker === 'mitesh') {
+            const quarterDropdownValue = document.getElementById('quarter-select').value;
+            if (!quarterDropdownValue) {
+                document.getElementById('mitesh-days-wrapper').classList.add('hidden');
+                document.getElementById('results-section').classList.add('hidden');
+                return;
+            }
+            finalDays = parseInt(quarterDropdownValue);
+            
+            document.getElementById('mitesh-days-text').innerText = "Number of Days: " + finalDays;
+            document.getElementById('mitesh-days-wrapper').classList.remove('hidden');
+        } else {
+            const startDateValue = document.getElementById('start-date').value;
+            const endDateValue = document.getElementById('end-date').value;
+            
+            if (!startDateValue || !endDateValue) {
+                document.getElementById('days-display-wrapper').classList.add('hidden');
+                document.getElementById('results-section').classList.add('hidden');
+                return;
+            }
+
+            const d1 = new Date(startDateValue);
+            const d2 = new Date(endDateValue);
+            finalDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+
+            document.getElementById('calculated-days-text').innerText = "Number of Days: " + (finalDays > 0 ? finalDays : 0);
+            document.getElementById('days-display-wrapper').classList.remove('hidden');
+        }
+
+        if (finalDays <= 0) {
+            document.getElementById('results-section').classList.add('hidden');
+            return;
+        }
+
+        let principalAmount = cleanNumericString(getSmartValue(activeRow, ['amount', 'principal']));
+        
+        let cheqRateRawStr = String(getSmartValue(activeRow, ['cheq', 'cheque']));
+        let cheqRateRaw = cleanNumericString(cheqRateRawStr);
+        let chequeMonthlyRate = cheqRateRawStr.includes('%') ? cheqRateRaw : (cheqRateRaw > 0.15 ? cheqRateRaw / 100 : cheqRateRaw);
+        
+        let cashRateRawStr = String(getSmartValue(activeRow, ['cash']));
+        let cashRateRaw = cleanNumericString(cashRateRawStr);
+        let cashMonthlyRate = cashRateRawStr.includes('%') ? cashRateRaw : (cashRateRaw > 0.15 ? cashRateRaw / 100 : cashRateRaw);
+        
+        const tdsField = getSmartValue(activeRow, ['tds']).trim().toLowerCase();
+        const isTdsEnabled = (tdsField === 'yes' || tdsField === 'y' || tdsField === '1');
+
+        let chequeGrossInterest = principalAmount * chequeMonthlyRate / 30 * finalDays;
+        let chequeTds = isTdsEnabled ? (chequeGrossInterest * 0.10) : 0; 
+        let chequeNetInterest = chequeGrossInterest - chequeTds;
+        
+        let cashInterest = principalAmount * cashMonthlyRate / 30 * finalDays;
+        
+        let grossTotalInterest = chequeGrossInterest + cashInterest;
+        let netTotalInterest = chequeNetInterest + cashInterest;
+
+        document.getElementById('res-cheque-gross').innerText = formatToIndianCurrency(chequeGrossInterest);
+        document.getElementById('res-cheque-tds').innerText = formatToIndianCurrency(chequeTds);
+        document.getElementById('res-cheque-net').innerText = formatToIndianCurrency(chequeNetInterest);
+        document.getElementById('res-cash-interest').innerText = formatToIndianCurrency(cashInterest);
+        document.getElementById('res-gross-total').innerText = formatToIndianCurrency(grossTotalInterest);
+        document.getElementById('res-net-total').innerText = formatToIndianCurrency(netTotalInterest);
+
+        document.getElementById('results-section').classList.remove('hidden');
+
+        // Smooth Auto-Scroll
+        setTimeout(() => {
+            document.getElementById('results-section').scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }, 150);
+    }
+
+    function shareSummary() {
+        const selectedIndex = document.getElementById('party-select').value;
+        if (!selectedIndex) return;
+        const activeRow = businessRecords[selectedIndex];
+        const firmName = getSmartValue(activeRow, ['party', 'firm', 'name'], true);
+        
+        const netTotal = document.getElementById('res-net-total').innerText;
+        const grossTotal = document.getElementById('res-gross-total').innerText;
+        const chequeNet = document.getElementById('res-cheque-net').innerText;
+        const cashVal = document.getElementById('res-cash-interest').innerText;
+        
+        let daysText = "";
+        const rawBroker = getSmartValue(activeRow, ['broker']).trim().toLowerCase();
+        if (rawBroker === 'mitesh') {
+            daysText = document.getElementById('mitesh-days-text').innerText;
+        } else {
+            const sDate = document.getElementById('start-date').value;
+            const eDate = document.getElementById('end-date').value;
+            daysText = `${document.getElementById('calculated-days-text').innerText} (${sDate} to ${eDate})`;
+        }
+
+        const summaryText = `📊 *Interest Computation Summary*\n` +
+            `• *Firm Name:* ${firmName}\n` +
+            `• *Duration:* ${daysText}\n` +
+            `• *Cheque Net Interest:* ${chequeNet}\n` +
+            `• *Cash Interest:* ${cashVal}\n` +
+            `• *Gross Total Interest:* ${grossTotal}\n` +
+            `✅ *Net Total Interest:* ${netTotal}\n\n` +
+            `Calculated via Family Interest Portal`;
+
+        if (navigator.share) {
+            navigator.share({
+                title: `Interest Summary - ${firmName}`,
+                text: summaryText
+            }).catch(() => {});
+        } else {
+            navigator.clipboard.writeText(summaryText).then(() => {
+                alert("Summary text copied to clipboard! You can now paste it directly into WhatsApp.");
+            });
+        }
+    }
+
+    function printSummary() {
+        window.print();
+    }
+</script>
+</body>
+</html>
