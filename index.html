@@ -29,17 +29,26 @@
     --radius-sm:10px;
   }
   *{box-sizing:border-box;}
+  html,body{height:100%;}
   body{
     margin:0;
+    min-height:100vh;
     background:
-      radial-gradient(600px 300px at 50% -10%, rgba(76,130,255,0.08), transparent 60%),
+      radial-gradient(700px 380px at 50% -8%, rgba(76,130,255,0.10), transparent 60%),
+      radial-gradient(500px 320px at 85% 25%, rgba(47,227,166,0.06), transparent 65%),
+      radial-gradient(500px 320px at 10% 60%, rgba(240,180,41,0.04), transparent 65%),
       var(--bg);
+    background-attachment:fixed;
     font-family:'Inter',sans-serif;
     color:var(--text);
-    padding:0 0 40px;
+    padding:0;
     -webkit-tap-highlight-color:transparent;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
   }
-  .container{max-width:520px;margin:0 auto;padding:20px 16px;}
+  body.center-content{align-items:center;}
+  .container{max-width:520px;width:100%;margin:0 auto;padding:20px 16px 40px;}
 
   .top-bar{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
   .top-bar .dot{width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 8px var(--mint);}
@@ -48,24 +57,38 @@
   }
   .top-bar .sub{font-size:11px;color:var(--muted-2);margin-left:auto;font-family:'JetBrains Mono',monospace;}
 
-  /* Segmented toggle with sliding pill */
-  .toggle-wrap{
-    position:relative;display:flex;background:var(--card);border:1px solid var(--line);
-    border-radius:999px;padding:4px;margin-bottom:20px;
+  .welcome-block{margin-bottom:22px;}
+  .welcome-title{
+    font-family:'Sora',sans-serif;font-weight:700;font-size:19px;letter-spacing:-0.01em;
+    color:var(--text);margin-bottom:10px;line-height:1.3;
   }
-  .toggle-pill{
-    position:absolute;top:4px;bottom:4px;width:calc(50% - 4px);
-    background:linear-gradient(135deg,var(--mint),#1FBF8C);
-    border-radius:999px;transition:transform .28s cubic-bezier(.4,0,.2,1);
-    box-shadow:0 4px 14px rgba(47,227,166,0.25);
+  .welcome-copy{font-size:13.5px;color:var(--muted);line-height:1.6;margin-bottom:14px;}
+  .welcome-cta{
+    font-family:'Sora',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;
+    text-transform:uppercase;color:var(--muted-2);
   }
-  .toggle-pill.right{transform:translateX(calc(100% + 0px));}
-  .toggle-btn{
-    position:relative;z-index:1;flex:1;padding:10px 8px;border:none;background:transparent;
-    font-family:'Sora',sans-serif;font-weight:600;font-size:12.5px;color:var(--muted);
-    cursor:pointer;border-radius:999px;transition:color .2s;
+
+  .choice-stack{display:flex;flex-direction:column;gap:12px;margin-bottom:22px;}
+  .choice-card{
+    display:flex;align-items:center;gap:14px;text-align:left;
+    background:var(--card);border:1.5px solid var(--line);border-radius:var(--radius);
+    padding:18px 16px;cursor:pointer;transition:border-color .18s, background .18s, transform .1s;
+    font-family:'Inter',sans-serif;
   }
-  .toggle-btn.active{color:#06120D;}
+  .choice-card:active{transform:scale(0.98);}
+  .choice-icon{font-size:24px;line-height:1;flex-shrink:0;}
+  .choice-text{display:flex;flex-direction:column;gap:3px;flex:1;}
+  .choice-title{font-family:'Sora',sans-serif;font-weight:700;font-size:14.5px;color:var(--text);}
+  .choice-desc{font-size:12px;color:var(--muted);line-height:1.4;}
+  .choice-arrow{font-size:16px;color:var(--muted-2);flex-shrink:0;transition:transform .18s, color .18s;}
+
+  .choice-card.selected{
+    border-color:var(--mint);
+    background:linear-gradient(135deg,rgba(47,227,166,0.10),rgba(47,227,166,0.02));
+    box-shadow:0 4px 18px rgba(47,227,166,0.12);
+  }
+  .choice-card.selected .choice-arrow{color:var(--mint);transform:translateX(2px);}
+  .choice-card.selected .choice-title{color:var(--mint);}
 
   .card{
     background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
@@ -198,14 +221,33 @@
     <span class="sub" id="live-clock">●</span>
   </div>
 
-  <div class="toggle-wrap no-print">
-    <div class="toggle-pill" id="toggle-pill"></div>
-    <button type="button" id="btn-mode-firm" class="toggle-btn active" onclick="switchMode('firm')">Firm View</button>
-    <button type="button" id="btn-mode-family" class="toggle-btn" onclick="switchMode('family')">Family View</button>
+  <div class="welcome-block">
+    <div class="welcome-title">Welcome to Ajay's Family Interest Calculator</div>
+    <div class="welcome-copy">Know how much money has been lent to every firm, how much money has been lent through each family member, among many other details.</div>
+    <div class="welcome-cta">Choose a view to continue</div>
+  </div>
+
+  <div class="choice-stack no-print">
+    <button type="button" id="card-mode-firm" class="choice-card" onclick="switchMode('firm')">
+      <span class="choice-icon">🏢</span>
+      <span class="choice-text">
+        <span class="choice-title">Firm View</span>
+        <span class="choice-desc">See totals, rates and interest owed for a specific firm.</span>
+      </span>
+      <span class="choice-arrow">→</span>
+    </button>
+    <button type="button" id="card-mode-family" class="choice-card" onclick="switchMode('family')">
+      <span class="choice-icon">👤</span>
+      <span class="choice-text">
+        <span class="choice-title">Family Member View</span>
+        <span class="choice-desc">See one family member's full lending portfolio.</span>
+      </span>
+      <span class="choice-arrow">→</span>
+    </button>
   </div>
 
   <!-- ================= MODE 1: FIRM LEVEL VIEW ================= -->
-  <div id="firm-view-container">
+  <div id="firm-view-container" class="hidden">
     <div class="field no-print">
       <label for="party-select">Select Firm</label>
       <select id="party-select" onchange="handlePartySelection()">
@@ -432,11 +474,11 @@
   }
 
   function switchMode(mode) {
-    document.getElementById('btn-mode-firm').classList.toggle('active', mode === 'firm');
-    document.getElementById('btn-mode-family').classList.toggle('active', mode === 'family');
+    document.getElementById('card-mode-firm').classList.toggle('selected', mode === 'firm');
+    document.getElementById('card-mode-family').classList.toggle('selected', mode === 'family');
     document.getElementById('firm-view-container').classList.toggle('hidden', mode !== 'firm');
     document.getElementById('family-view-container').classList.toggle('hidden', mode !== 'family');
-    document.getElementById('toggle-pill').classList.toggle('right', mode === 'family');
+    updateCentering();
   }
 
   function initDropdowns() {
@@ -532,6 +574,7 @@
     document.getElementById('info-full-total').innerText = formatINR(fullGrandTotal);
 
     document.getElementById('details-card').classList.remove('hidden');
+    updateCentering();
     document.getElementById('quarter-select').value = "";
     document.getElementById('start-date').value = "";
     document.getElementById('end-date').value = "";
@@ -823,6 +866,7 @@
     `;
 
     document.getElementById('family-results-section').classList.remove('hidden');
+    updateCentering();
   }
 
   function resetCalculator() {
@@ -837,6 +881,7 @@
     document.getElementById('standard-date-section').classList.add('hidden');
     document.getElementById('results-section').classList.add('hidden');
     document.getElementById('family-results-section').classList.add('hidden');
+    updateCentering();
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -929,6 +974,12 @@
     window.print();
   }
 
+  function updateCentering(){
+    const detailsShown = !document.getElementById('details-card').classList.contains('hidden');
+    const familyShown = !document.getElementById('family-results-section').classList.contains('hidden');
+    document.body.classList.toggle('center-content', !detailsShown && !familyShown);
+  }
+
   // subtle live clock in header, cosmetic only
   function tickClock(){
     const el = document.getElementById('live-clock');
@@ -938,6 +989,7 @@
   }
   tickClock();
   setInterval(tickClock, 30000);
+  updateCentering();
 </script>
 </body>
 </html>
