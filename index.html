@@ -576,6 +576,10 @@
     document.getElementById('details-card').classList.remove('hidden');
     updateCentering();
     document.getElementById('quarter-select').value = "";
+
+    setTimeout(() => {
+      document.getElementById('party-select').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
     document.getElementById('start-date').value = "";
     document.getElementById('end-date').value = "";
     document.getElementById('results-section').classList.add('hidden');
@@ -867,6 +871,10 @@
 
     document.getElementById('family-results-section').classList.remove('hidden');
     updateCentering();
+
+    setTimeout(() => {
+      document.getElementById('family-select').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
   }
 
   function resetCalculator() {
