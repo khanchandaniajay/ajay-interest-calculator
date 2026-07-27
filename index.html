@@ -253,10 +253,11 @@
             <button type="button" class="btn-clear no-print" onclick="resetCalculator()">🔄 Clear Everything</button>
         </div>
     </div>
-                    </div>
-    <script>
-    // Published CSV URL for Itemized Google Sheet Tab
-    const SHEET_DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTE8Ga_ayS7dMQ3novYHY9WtJFqaIPIqopKjz6s9qT5wwsWfPGXyBhe0tuEn4eKkJz1DjK1gVbYXvgN/pub?gid=81907815&single=true&output=csv";
+</div>
+
+<script>
+    // Direct Live Data Export from Google Sheets with Dynamic Cache-Busting Timestamp
+    const SHEET_DATA_URL = "https://docs.google.com/spreadsheets/d/1keZRwZsEDX6jnp3ktmHs9e9vSQght2d9c7apu2s5hPo/gviz/tq?tqx=out:csv&gid=81907815&_t=" + new Date().getTime();
 
     let businessRecords = [];
 
@@ -515,7 +516,8 @@
             document.getElementById('results-section').scrollIntoView({ behavior: 'smooth', block: 'end' });
         }, 150);
     }
-        function handleFamilySelection() {
+
+    function handleFamilySelection() {
         const selectedMember = document.getElementById('family-select').value;
         if (!selectedMember) {
             document.getElementById('family-results-section').classList.add('hidden');
@@ -530,7 +532,6 @@
         tbody.innerHTML = "";
 
         if (selectedMember === "Total (All members)") {
-            // Option B: Group and combine by Firm Name across all members
             let firmGroupMap = {};
 
             businessRecords.forEach(record => {
@@ -620,7 +621,6 @@
             });
 
         } else {
-            // Single Family Member View
             businessRecords.forEach(record => {
                 if (getVal(record, "Family Member") === selectedMember) {
                     let firmName = getVal(record, "Money Lent To");
@@ -817,4 +817,3 @@
 </script>
 </body>
 </html>
-    
