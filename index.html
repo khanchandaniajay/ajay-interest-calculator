@@ -1,819 +1,943 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ajay Family Interest Calculator</title>
-    <!-- PapaParse library to convert Google Sheet CSV into data -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    
-    <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f0f4f8; margin: 0; padding: 12px; display: flex; justify-content: center; }
-        .container { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); max-width: 720px; width: 100%; box-sizing: border-box; }
-        h2 { text-align: center; color: #0f172a; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; font-size: 20px; }
-        
-        /* Top View Switcher Toggle */
-        .toggle-container { display: flex; background: #e2e8f0; border-radius: 10px; padding: 4px; margin-bottom: 18px; }
-        .toggle-btn { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; background: transparent; color: #475569; transition: all 0.2s; }
-        .toggle-btn.active { background: #2563eb; color: white; box-shadow: 0 2px 6px rgba(37,99,235,0.3); }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Family Interest Ledger</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 
-        .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 16px; }
-        .card-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 10px; font-weight: 700; }
-        .form-group { margin-bottom: 14px; }
-        label { display: block; margin-bottom: 6px; font-weight: 600; color: #334155; font-size: 13px; }
-        select, input[type="date"] { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 14px; background-color: #fff; color: #1e293b; -webkit-appearance: none; }
-        .hidden { display: none; }
-        
-        .info-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; color: #475569; border-bottom: 1px dashed #f1f5f9; padding-bottom: 4px; align-items: center; }
-        .info-value { font-weight: 600; color: #0f172a; text-align: right; max-width: 65%; word-break: break-word; }
-        
-        /* Strict Excel-Style 2-Column Grid Alignment for Family Summary */
-        .summary-grid-row { display: grid; grid-template-columns: 55% 45%; align-items: center; padding: 6px 4px; font-size: 13px; border-bottom: 1px dashed #f1f5f9; }
-        .summary-grid-row.left-align .col-label { text-align: left; font-weight: 500; color: #475569; }
-        .summary-grid-row.left-align .col-val { text-align: left; font-weight: 600; color: #0f172a; }
+<style>
+  :root{
+    --bg:#0A0D12;
+    --card:#131720;
+    --card-hover:#171C27;
+    --line:#232A36;
+    --line-soft:#1A2029;
+    --text:#EDF1F7;
+    --muted:#7C8798;
+    --muted-2:#4E5766;
+    --mint:#2FE3A6;
+    --mint-dim:#12362B;
+    --amber:#F0B429;
+    --amber-dim:#3A2C0E;
+    --red:#FF5C6C;
+    --red-dim:#3A1418;
+    --blue:#4C82FF;
+    --radius:16px;
+    --radius-sm:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(600px 300px at 50% -10%, rgba(76,130,255,0.08), transparent 60%),
+      var(--bg);
+    font-family:'Inter',sans-serif;
+    color:var(--text);
+    padding:0 0 40px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .container{max-width:520px;margin:0 auto;padding:20px 16px;}
 
-        .summary-grid-row.total-row-green { display: grid; grid-template-columns: 55% 45%; align-items: center; padding: 8px 6px; font-size: 13px; background-color: #dcfce7; border: 1px solid #bbf7d0; border-radius: 6px; margin-top: 4px; margin-bottom: 10px; }
-        .summary-grid-row.total-row-green .col-label { text-align: right; font-weight: 700; color: #065f46; padding-right: 8px; }
-        .summary-grid-row.total-row-green .col-val { text-align: right; font-weight: 700; color: #15803d; }
+  .top-bar{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+  .top-bar .dot{width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 8px var(--mint);}
+  .top-bar h1{
+    font-family:'Sora',sans-serif;font-weight:700;font-size:17px;letter-spacing:-0.01em;margin:0;
+  }
+  .top-bar .sub{font-size:11px;color:var(--muted-2);margin-left:auto;font-family:'JetBrains Mono',monospace;}
 
-        .results-card { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin-top: 15px; scroll-margin-bottom: 20px; }
-        .result-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: #1e293b; }
-        .total-row { border-top: 2px dashed #bbf7d0; padding-top: 8px; margin-top: 8px; font-size: 15px; }
-        .highlight-green { font-weight: 700; color: #16a34a; font-size: 18px; }
-        .days-box { background: #fef08a; color: #854d0e; padding: 8px; border-radius: 8px; text-align: center; font-weight: 700; margin-top: 8px; font-size: 14px; border: 1px solid #fde047; }
-        
-        /* Side-Scrolling Mobile Table Styling */
-        .table-responsive { overflow-x: auto; margin-top: 10px; border-radius: 8px; border: 1px solid #cbd5e1; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 640px; }
-        th { background: #0f172a; color: white; padding: 8px 6px; text-align: left; font-weight: 600; }
-        td { padding: 8px 6px; border-bottom: 1px solid #e2e8f0; color: #334155; }
-        tr:nth-child(even) { background-color: #f8fafc; }
-        tfoot tr { background: #f1f5f9; font-weight: 700; border-top: 2px solid #0f172a; }
-        tfoot td { color: #0f172a; font-size: 12px; }
+  /* Segmented toggle with sliding pill */
+  .toggle-wrap{
+    position:relative;display:flex;background:var(--card);border:1px solid var(--line);
+    border-radius:999px;padding:4px;margin-bottom:20px;
+  }
+  .toggle-pill{
+    position:absolute;top:4px;bottom:4px;width:calc(50% - 4px);
+    background:linear-gradient(135deg,var(--mint),#1FBF8C);
+    border-radius:999px;transition:transform .28s cubic-bezier(.4,0,.2,1);
+    box-shadow:0 4px 14px rgba(47,227,166,0.25);
+  }
+  .toggle-pill.right{transform:translateX(calc(100% + 0px));}
+  .toggle-btn{
+    position:relative;z-index:1;flex:1;padding:10px 8px;border:none;background:transparent;
+    font-family:'Sora',sans-serif;font-weight:600;font-size:12.5px;color:var(--muted);
+    cursor:pointer;border-radius:999px;transition:color .2s;
+  }
+  .toggle-btn.active{color:#06120D;}
 
-        /* Warning & Status Badges */
-        .badge-red { background: #fee2e2; color: #991b1b; padding: 3px 6px; border-radius: 4px; font-weight: 700; font-size: 10px; display: inline-block; border: 1px solid #fca5a5; }
-        .badge-green { background: #dcfce7; color: #166534; padding: 3px 6px; border-radius: 4px; font-weight: 700; font-size: 10px; display: inline-block; }
-        .badge-orange { background: #ffedd5; color: #9a3412; padding: 3px 6px; border-radius: 4px; font-weight: 700; font-size: 10px; display: inline-block; border: 1px solid #fdba74; }
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px;margin-bottom:14px;
+  }
+  .card-title{
+    font-family:'Sora',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:0.08em;
+    text-transform:uppercase;color:var(--muted-2);margin-bottom:12px;
+  }
+  .field{margin-bottom:14px;}
+  .field:last-child{margin-bottom:0;}
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:7px;}
 
-        .action-btn-group { margin-top: 15px; display: flex; gap: 8px; }
-        .btn-share { flex: 1; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; text-align: center; }
-        .btn-print { flex: 1; padding: 12px; background: #0f172a; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; text-align: center; }
-        .btn-clear { width: 100%; margin-top: 10px; padding: 12px; background: #dc2626; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; text-align: center; }
+  select, input[type="date"]{
+    width:100%;padding:12px 14px;background:var(--line-soft);border:1px solid var(--line);
+    border-radius:var(--radius-sm);color:var(--text);font-size:14px;font-family:'Inter',sans-serif;
+    -webkit-appearance:none;appearance:none;
+    background-image:url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237C8798' stroke-width='2'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat:no-repeat;background-position:right 12px center;background-size:16px;
+    transition:border-color .15s;
+  }
+  select:focus, input:focus{outline:none;border-color:var(--blue);}
+  input[type="date"]{background-image:none;color-scheme:dark;}
 
-        @media print {
-            body { background: white; padding: 0; }
-            .container { box-shadow: none; padding: 0; max-width: 100%; }
-            .no-print { display: none !important; }
-            .card, .results-card { border: 1px solid #ccc !important; background: white !important; }
-        }
-    </style>
+  .hidden{display:none !important;}
+
+  .fade-in{animation:fadeSlide .32s cubic-bezier(.16,1,.3,1) both;}
+  @keyframes fadeSlide{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+  /* info rows */
+  .info-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line-soft);font-size:13px;}
+  .info-row:last-child{border-bottom:none;}
+  .info-row span:first-child{color:var(--muted);}
+  .info-value{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--text);text-align:right;max-width:60%;}
+
+  .hero-stat{
+    background:linear-gradient(180deg,rgba(47,227,166,0.08),rgba(47,227,166,0.02));
+    border:1px solid var(--mint-dim);border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;
+  }
+  .hero-stat .lbl{font-size:11px;color:var(--muted);margin-bottom:4px;}
+  .hero-stat .val{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:22px;color:var(--mint);}
+
+  .split-box{
+    background:rgba(76,130,255,0.06);border:1px solid rgba(76,130,255,0.18);
+    border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;
+  }
+  .split-box .lbl{font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;}
+  .split-box .rows{font-size:13px;color:var(--text);line-height:1.9;font-family:'JetBrains Mono',monospace;}
+
+  .rate-total-row{background:var(--line-soft);border-radius:var(--radius-sm);padding:9px 10px !important;margin-top:4px;}
+  .rate-total-row .info-value{color:var(--blue);}
+
+  .fy-row{background:rgba(240,180,41,0.06) !important;border-radius:8px;padding:9px 10px !important;}
+  .fy-row .info-value{color:var(--amber);}
+  .fy-total-row{background:var(--mint-dim) !important;border-radius:8px;padding:10px 10px !important;margin-top:2px;}
+  .fy-total-row .info-value{color:var(--mint);font-size:14px;}
+
+  .days-box{
+    background:var(--amber-dim);border:1px solid rgba(240,180,41,0.35);color:var(--amber);
+    padding:10px;border-radius:var(--radius-sm);text-align:center;font-family:'JetBrains Mono',monospace;
+    font-weight:700;font-size:13px;margin-top:10px;
+  }
+
+  /* results card */
+  .results-card{
+    background:linear-gradient(165deg,var(--card),#0F2A22 400%);
+    border:1px solid var(--mint-dim);border-radius:var(--radius);padding:18px;margin-top:16px;
+  }
+  .result-row{display:flex;justify-content:space-between;padding:8px 0;font-size:13px;color:var(--muted);border-bottom:1px dashed var(--line-soft);}
+  .result-row span:last-child{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--text);}
+  .result-row.tds span:last-child{color:var(--red);}
+  .result-row.total{border-bottom:none;border-top:1px solid var(--line);margin-top:6px;padding-top:14px;}
+  .result-row.total span:last-child{font-size:15px;color:var(--text);}
+  .net-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:10px;}
+  .net-row .lbl{font-family:'Sora',sans-serif;font-weight:700;font-size:13px;color:var(--text);}
+  .net-row .val{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:24px;color:var(--mint);text-shadow:0 0 20px rgba(47,227,166,0.35);}
+
+  .btn-row{display:flex;gap:8px;margin-top:18px;}
+  .btn{
+    flex:1;padding:13px;border:none;border-radius:var(--radius-sm);font-family:'Sora',sans-serif;
+    font-weight:600;font-size:12.5px;cursor:pointer;transition:transform .1s, opacity .15s;
+    display:flex;align-items:center;justify-content:center;gap:6px;
+  }
+  .btn:active{transform:scale(0.97);}
+  .btn-share{background:var(--blue);color:#fff;}
+  .btn-print{background:var(--line-soft);color:var(--text);border:1px solid var(--line);}
+  .btn-clear{
+    width:100%;margin-top:10px;padding:13px;background:transparent;color:var(--red);
+    border:1px solid rgba(255,92,108,0.3);border-radius:var(--radius-sm);font-family:'Sora',sans-serif;
+    font-weight:600;font-size:12.5px;cursor:pointer;
+  }
+  .btn-clear:active{background:var(--red-dim);}
+
+  /* mobile table -> stacked cards for family view */
+  .table-responsive{overflow-x:auto;border-radius:var(--radius-sm);border:1px solid var(--line);margin-top:4px;}
+  table{width:100%;border-collapse:collapse;font-size:11.5px;min-width:620px;font-family:'JetBrains Mono',monospace;}
+  th{background:var(--line-soft);color:var(--muted);padding:9px 8px;text-align:left;font-weight:600;font-family:'Inter',sans-serif;font-size:10.5px;text-transform:uppercase;letter-spacing:0.03em;}
+  td{padding:9px 8px;border-bottom:1px solid var(--line-soft);color:var(--text);}
+  tr:last-child td{border-bottom:none;}
+  tfoot tr{background:rgba(47,227,166,0.05);border-top:1px solid var(--mint-dim);}
+  tfoot td{color:var(--mint);font-weight:700;}
+
+  .badge{padding:3px 8px;border-radius:6px;font-weight:700;font-size:10px;display:inline-block;font-family:'Inter',sans-serif;}
+  .badge-green{background:var(--mint-dim);color:var(--mint);}
+  .badge-red{background:var(--red-dim);color:var(--red);}
+  .badge-orange{background:var(--amber-dim);color:var(--amber);}
+
+  .summary-grid-row{display:grid;grid-template-columns:58% 42%;align-items:center;padding:8px 2px;font-size:13px;border-bottom:1px solid var(--line-soft);}
+  .summary-grid-row.left-align .col-label{color:var(--muted);}
+  .summary-grid-row.left-align .col-val{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--text);text-align:right;}
+  .summary-grid-row.total-row-green{
+    background:var(--mint-dim);border-radius:var(--radius-sm);padding:10px 12px;margin:6px 0 14px;border-bottom:none;
+  }
+  .summary-grid-row.total-row-green .col-label{text-align:right;font-weight:700;color:var(--mint);padding-right:10px;font-family:'Sora',sans-serif;font-size:12px;}
+  .summary-grid-row.total-row-green .col-val{text-align:right;font-weight:700;color:var(--mint);font-family:'JetBrains Mono',monospace;font-size:14px;}
+
+  @media print{
+    body{background:#fff;color:#000;}
+    .no-print{display:none !important;}
+    .card,.results-card{border:1px solid #ccc !important;background:#fff !important;}
+  }
+</style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Ajay Family Interest Calculator</h2>
-    
-    <!-- TOP VIEW SWITCHER TOGGLE -->
-    <div class="toggle-container no-print">
-        <button type="button" id="btn-mode-firm" class="toggle-btn active" onclick="switchMode('firm')">🏢 Firm Level View</button>
-        <button type="button" id="btn-mode-family" class="toggle-btn" onclick="switchMode('family')">👤 Family Member View</button>
+  <div class="top-bar">
+    <span class="dot"></span>
+    <h1>Family Interest Ledger</h1>
+    <span class="sub" id="live-clock">●</span>
+  </div>
+
+  <div class="toggle-wrap no-print">
+    <div class="toggle-pill" id="toggle-pill"></div>
+    <button type="button" id="btn-mode-firm" class="toggle-btn active" onclick="switchMode('firm')">Firm View</button>
+    <button type="button" id="btn-mode-family" class="toggle-btn" onclick="switchMode('family')">Family View</button>
+  </div>
+
+  <!-- ================= MODE 1: FIRM LEVEL VIEW ================= -->
+  <div id="firm-view-container">
+    <div class="field no-print">
+      <label for="party-select">Select Firm</label>
+      <select id="party-select" onchange="handlePartySelection()">
+        <option value="">-- Loading Firms... --</option>
+      </select>
     </div>
 
-    <!-- ================= MODE 1: FIRM LEVEL VIEW ================= -->
-    <div id="firm-view-container">
-        <div class="form-group no-print">
-            <label for="party-select">1. Select Firm Name</label>
-            <select id="party-select" onchange="handlePartySelection()">
-                <option value="">-- Loading Firms... --</option>
-            </select>
-        </div>
+    <div id="details-card" class="card hidden fade-in">
+      <div class="card-title">Firm Account Details</div>
 
-        <div id="details-card" class="card hidden">
-            <div class="card-title">Firm Account Details</div>
-            
-            <!-- FIELD 1: TOTAL DEPLOYED PRINCIPAL -->
-            <div class="info-row" style="background: #f8fafc; padding: 6px; border-radius: 6px;">
-                <span>Total Deployed Principal:</span>
-                <span class="info-value" id="info-amount" style="font-size: 15px; color: #0f172a; font-weight:700;">-</span>
-            </div>
+      <div class="hero-stat">
+        <div class="lbl">Total Deployed Principal</div>
+        <div class="val" id="info-amount">-</div>
+      </div>
 
-            <!-- FIELD 2: FAMILY MEMBER CONTRIBUTION SPLIT -->
-            <div class="info-row" style="background: #eff6ff; padding: 6px; border-radius: 6px; flex-direction: column; align-items: flex-start; margin-top: 6px; margin-bottom: 10px;">
-                <span style="font-size: 12px; font-weight: 700; color: #1e40af;">Family Member Contribution Split:</span>
-                <span class="info-value" id="info-family-split" style="max-width: 100%; text-align: left; font-size: 13px; margin-top: 3px; color: #1e293b;">-</span>
-            </div>
+      <div class="split-box">
+        <div class="lbl">Family Contribution Split</div>
+        <div class="rows" id="info-family-split">-</div>
+      </div>
 
-            <!-- FIELD 3+: OTHER ACCOUNT DETAILS -->
-            <div class="info-row"><span>Broker:</span><span class="info-value" id="info-broker">-</span></div>
-            <div class="info-row"><span>Start date (Current FY):</span><span class="info-value" id="info-fy-start">-</span></div>
-            <div class="info-row"><span>Monthly Cheque Rate:</span><span class="info-value" id="info-cheque-rate">-</span></div>
-            <div class="info-row"><span>Monthly Cash Rate:</span><span class="info-value" id="info-cash-rate">-</span></div>
-            <div class="info-row" style="background: #f1f5f9; padding: 4px 6px;"><span>Monthly Interest Rate Total:</span><span class="info-value" id="info-monthly-rate-total" style="color: #2563eb; font-weight:700;">-</span></div>
-            <div class="info-row"><span>Interest Frequency:</span><span class="info-value" id="info-frequency">-</span></div>
-            <div class="info-row"><span>TDS Applicable:</span><span class="info-value" id="info-tds">-</span></div>
-            <div class="info-row" style="background: #f8fafc; padding: 4px 6px;"><span>Payment Status:</span><span class="info-value" id="info-payment-status" style="font-weight:700;">-</span></div>
-            <div class="info-row" style="background: #fdf8f6; padding: 4px 6px;"><span>Full Year Cheque Int:</span><span class="info-value" id="info-full-cheque" style="color:#b45309;">-</span></div>
-            <div class="info-row" style="background: #fdf8f6; padding: 4px 6px;"><span>Full Year Cash Int:</span><span class="info-value" id="info-full-cash" style="color:#b45309;">-</span></div>
-            <div class="info-row" style="background: #f0fdf4; padding: 6px 6px;"><span>Full Year Total Int:</span><span class="info-value" id="info-full-total" style="color: #16a34a; font-weight:700;">-</span></div>
-        </div>
-
-        <div id="mitesh-section" class="card hidden">
-            <div class="card-title">Select Operational Quarter</div>
-            <div class="form-group no-print">
-                <select id="quarter-select" onchange="processCalculations()">
-                    <option value="">-- Select Quarter --</option>
-                    <option value="90">Q1: Apr-Jun</option>
-                    <option value="90">Q2: Jul-Sep</option>
-                    <option value="90">Q3: Oct-Dec</option>
-                    <option value="95">Q4: Jan-Mar</option>
-                    <option value="96">Q4: Jan-Mar (Leap Yr)</option>
-                </select>
-            </div>
-            <div id="mitesh-days-wrapper" class="hidden">
-                <div class="days-box" id="mitesh-days-text">Number of Days: 0</div>
-            </div>
-        </div>
-
-        <div id="standard-date-section" class="card hidden">
-            <div class="card-title">Select Calculation Range</div>
-            <div class="form-group no-print">
-                <label for="start-date">Select Start Date</label>
-                <input type="date" id="start-date" onchange="handleStartDateChange()">
-            </div>
-            <div class="form-group no-print">
-                <label for="end-date">Select End Date</label>
-                <input type="date" id="end-date" onchange="processCalculations()">
-            </div>
-            <div id="days-display-wrapper" class="hidden">
-                <div class="days-box" id="calculated-days-text">Number of Days: 0</div>
-            </div>
-        </div>
-
-        <div id="results-section" class="results-card hidden">
-            <div class="card-title" style="color: #14532d;">Live Interest Computation</div>
-            <div class="result-row"><span>Cheque Gross Interest:</span><span id="res-cheque-gross" style="font-weight:600;">₹0</span></div>
-            <div class="result-row"><span>Cheque TDS Deducted:</span><span id="res-cheque-tds" style="color: #b91c1c; font-weight:600;">₹0</span></div>
-            <div class="result-row" style="padding-bottom: 6px; border-bottom: 1px dashed #bbf7d0;"><span>Cheque Net Interest:</span><span id="res-cheque-net" style="font-weight:600;">₹0</span></div>
-            <div class="result-row" style="margin-top: 6px; padding-bottom: 6px; border-bottom: 1px dashed #bbf7d0;"><span>Cash Interest Amount:</span><span id="res-cash-interest" style="font-weight:600;">₹0</span></div>
-            <div class="result-row total-row"><span>Gross Total Interest:</span><span id="res-gross-total" style="font-weight:700;">₹0</span></div>
-            <div class="result-row" style="font-size: 18px; font-weight: 700; margin-top: 4px;"><span>Net Total Interest:</span><span id="res-net-total" class="highlight-green">₹0</span></div>
-
-            <div class="action-btn-group no-print">
-                <button type="button" class="btn-share" onclick="shareSummary()">📲 Share Summary</button>
-                <button type="button" class="btn-print" onclick="printSummary()">🖨️ Save PDF / Print</button>
-            </div>
-            <button type="button" class="btn-clear no-print" onclick="resetCalculator()">🔄 Clear Everything</button>
-        </div>
+      <div class="info-row"><span>Broker</span><span class="info-value" id="info-broker">-</span></div>
+      <div class="info-row"><span>Start date (Current FY)</span><span class="info-value" id="info-fy-start">-</span></div>
+      <div class="info-row"><span>Monthly Cheque Rate</span><span class="info-value" id="info-cheque-rate">-</span></div>
+      <div class="info-row"><span>Monthly Cash Rate</span><span class="info-value" id="info-cash-rate">-</span></div>
+      <div class="info-row rate-total-row"><span>Monthly Rate Total</span><span class="info-value" id="info-monthly-rate-total">-</span></div>
+      <div class="info-row"><span>Interest Frequency</span><span class="info-value" id="info-frequency">-</span></div>
+      <div class="info-row"><span>TDS Applicable</span><span class="info-value" id="info-tds">-</span></div>
+      <div class="info-row"><span>Payment Status</span><span class="info-value" id="info-payment-status">-</span></div>
+      <div class="info-row fy-row"><span>Full Year Cheque Int</span><span class="info-value" id="info-full-cheque">-</span></div>
+      <div class="info-row fy-row"><span>Full Year Cash Int</span><span class="info-value" id="info-full-cash">-</span></div>
+      <div class="info-row fy-total-row"><span>Full Year Total Int</span><span class="info-value" id="info-full-total">-</span></div>
     </div>
 
-    <!-- ================= MODE 2: FAMILY MEMBER LEVEL VIEW ================= -->
-    <div id="family-view-container" class="hidden">
-        <div class="form-group no-print">
-            <label for="family-select">Select Family Member</label>
-            <select id="family-select" onchange="handleFamilySelection()">
-                <option value="">-- Choose Member --</option>
-            </select>
-        </div>
-
-        <div id="family-results-section" class="hidden">
-            <!-- PORTFOLIO SUMMARY CARD -->
-            <div class="card">
-                <div class="card-title">Portfolio Summary</div>
-                
-                <div class="summary-grid-row left-align">
-                    <span class="col-label">Cheque money lent:</span>
-                    <span class="col-val" id="fam-cheque-lent">₹0</span>
-                </div>
-                <div class="summary-grid-row left-align">
-                    <span class="col-label">Cash money lent:</span>
-                    <span class="col-val" id="fam-cash-lent">₹0</span>
-                </div>
-                <div class="summary-grid-row total-row-green">
-                    <span class="col-label">Total money lent:</span>
-                    <span class="col-val" id="fam-total-lent">₹0</span>
-                </div>
-
-                <div class="summary-grid-row left-align" style="margin-top: 6px;">
-                    <span class="col-label">Full year cheque interest:</span>
-                    <span class="col-val" id="fam-fy-cheque">₹0</span>
-                </div>
-                <div class="summary-grid-row left-align">
-                    <span class="col-label">Full year cash interest:</span>
-                    <span class="col-val" id="fam-fy-cash">₹0</span>
-                </div>
-                <div class="summary-grid-row total-row-green">
-                    <span class="col-label">Full year total interest:</span>
-                    <span class="col-val" id="fam-fy-total">₹0</span>
-                </div>
-
-                <div class="summary-grid-row left-align" style="margin-top: 6px;">
-                    <span class="col-label">Current FY cheque interest:</span>
-                    <span class="col-val" id="fam-cur-cheque">₹0</span>
-                </div>
-                <div class="summary-grid-row left-align">
-                    <span class="col-label">Current FY cash interest:</span>
-                    <span class="col-val" id="fam-cur-cash">₹0</span>
-                </div>
-                <div class="summary-grid-row total-row-green">
-                    <span class="col-label">Current FY total interest:</span>
-                    <span class="col-val" id="fam-cur-total">₹0</span>
-                </div>
-            </div>
-
-            <!-- ITEMIZED FIRM TABLE (ITEM J) -->
-            <div class="card-title" style="margin-top: 18px;">Lent Firms Itemized Breakdown</div>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Firm Name</th>
-                            <th>Cheque Amt</th>
-                            <th>Cash Amt</th>
-                            <th>Total Amt</th>
-                            <th>Monthly Rates (Cheq / Cash / Total)</th>
-                            <th>Full FY Int (Cheq / Cash / Total)</th>
-                            <th>Curr FY Int (Cheq / Cash / Total)</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="family-table-body">
-                        <!-- Dynamic Rows Injected Here -->
-                    </tbody>
-                    <tfoot id="family-table-foot">
-                        <!-- Dynamic Grand Total Row Injected Here -->
-                    </tfoot>
-                </table>
-            </div>
-
-            <div class="action-btn-group no-print">
-                <button type="button" class="btn-share" onclick="shareFamilySummary()">📲 Share Summary</button>
-                <button type="button" class="btn-print" onclick="printSummary()">🖨️ Save PDF / Print</button>
-            </div>
-            <button type="button" class="btn-clear no-print" onclick="resetCalculator()">🔄 Clear Everything</button>
-        </div>
+    <div id="mitesh-section" class="card hidden fade-in">
+      <div class="card-title">Select Operational Quarter</div>
+      <div class="field no-print">
+        <select id="quarter-select" onchange="processCalculations()">
+          <option value="">-- Select Quarter --</option>
+          <option value="90">Q1: Apr-Jun</option>
+          <option value="90">Q2: Jul-Sep</option>
+          <option value="90">Q3: Oct-Dec</option>
+          <option value="95">Q4: Jan-Mar</option>
+          <option value="96">Q4: Jan-Mar (Leap Yr)</option>
+        </select>
+      </div>
+      <div id="mitesh-days-wrapper" class="hidden">
+        <div class="days-box" id="mitesh-days-text">Number of Days: 0</div>
+      </div>
     </div>
+
+    <div id="standard-date-section" class="card hidden fade-in">
+      <div class="card-title">Select Calculation Range</div>
+      <div class="field no-print">
+        <label for="start-date">Start Date</label>
+        <input type="date" id="start-date" onchange="handleStartDateChange()">
+      </div>
+      <div class="field no-print">
+        <label for="end-date">End Date</label>
+        <input type="date" id="end-date" onchange="processCalculations()">
+      </div>
+      <div id="days-display-wrapper" class="hidden">
+        <div class="days-box" id="calculated-days-text">Number of Days: 0</div>
+      </div>
+    </div>
+
+    <div id="results-section" class="results-card hidden fade-in">
+      <div class="card-title" style="color:var(--mint);">Live Interest Computation</div>
+      <div class="result-row"><span>Cheque Gross Interest</span><span id="res-cheque-gross">₹0</span></div>
+      <div class="result-row tds"><span>Cheque TDS Deducted</span><span id="res-cheque-tds">₹0</span></div>
+      <div class="result-row"><span>Cheque Net Interest</span><span id="res-cheque-net">₹0</span></div>
+      <div class="result-row"><span>Cash Interest Amount</span><span id="res-cash-interest">₹0</span></div>
+      <div class="result-row total"><span>Gross Total Interest</span><span id="res-gross-total">₹0</span></div>
+      <div class="net-row"><span class="lbl">Net Total Interest</span><span class="val" id="res-net-total">₹0</span></div>
+
+      <div class="btn-row no-print">
+        <button type="button" class="btn btn-share" onclick="shareSummary()">Share Summary</button>
+        <button type="button" class="btn btn-print" onclick="printSummary()">Save / Print</button>
+      </div>
+      <button type="button" class="btn-clear no-print" onclick="resetCalculator()">Clear Everything</button>
+    </div>
+  </div>
+
+  <!-- ================= MODE 2: FAMILY MEMBER LEVEL VIEW ================= -->
+  <div id="family-view-container" class="hidden">
+    <div class="field no-print">
+      <label for="family-select">Select Family Member</label>
+      <select id="family-select" onchange="handleFamilySelection()">
+        <option value="">-- Choose Member --</option>
+      </select>
+    </div>
+
+    <div id="family-results-section" class="hidden fade-in">
+      <div class="card">
+        <div class="card-title">Portfolio Summary</div>
+
+        <div class="summary-grid-row left-align">
+          <span class="col-label">Cheque money lent</span>
+          <span class="col-val" id="fam-cheque-lent">₹0</span>
+        </div>
+        <div class="summary-grid-row left-align">
+          <span class="col-label">Cash money lent</span>
+          <span class="col-val" id="fam-cash-lent">₹0</span>
+        </div>
+        <div class="summary-grid-row total-row-green">
+          <span class="col-label">Total money lent</span>
+          <span class="col-val" id="fam-total-lent">₹0</span>
+        </div>
+
+        <div class="summary-grid-row left-align">
+          <span class="col-label">Full year cheque interest</span>
+          <span class="col-val" id="fam-fy-cheque">₹0</span>
+        </div>
+        <div class="summary-grid-row left-align">
+          <span class="col-label">Full year cash interest</span>
+          <span class="col-val" id="fam-fy-cash">₹0</span>
+        </div>
+        <div class="summary-grid-row total-row-green">
+          <span class="col-label">Full year total interest</span>
+          <span class="col-val" id="fam-fy-total">₹0</span>
+        </div>
+
+        <div class="summary-grid-row left-align">
+          <span class="col-label">Current FY cheque interest</span>
+          <span class="col-val" id="fam-cur-cheque">₹0</span>
+        </div>
+        <div class="summary-grid-row left-align">
+          <span class="col-label">Current FY cash interest</span>
+          <span class="col-val" id="fam-cur-cash">₹0</span>
+        </div>
+        <div class="summary-grid-row total-row-green">
+          <span class="col-label">Current FY total interest</span>
+          <span class="col-val" id="fam-cur-total">₹0</span>
+        </div>
+      </div>
+
+      <div class="card-title" style="margin:18px 4px 8px;">Lent Firms — Itemized Breakdown</div>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Firm Name</th>
+              <th>Cheque Amt</th>
+              <th>Cash Amt</th>
+              <th>Total Amt</th>
+              <th>Monthly Rates (Cheq / Cash / Total)</th>
+              <th>Full FY Int (Cheq / Cash / Total)</th>
+              <th>Curr FY Int (Cheq / Cash / Total)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="family-table-body"></tbody>
+          <tfoot id="family-table-foot"></tfoot>
+        </table>
+      </div>
+
+      <div class="btn-row no-print">
+        <button type="button" class="btn btn-share" onclick="shareFamilySummary()">Share Summary</button>
+        <button type="button" class="btn btn-print" onclick="printSummary()">Save / Print</button>
+      </div>
+      <button type="button" class="btn-clear no-print" onclick="resetCalculator()">Clear Everything</button>
+    </div>
+  </div>
 </div>
 
 <script>
-    // Published CSV URL with Cache-Busting Timestamp (100% Reliable & Always Fresh)
-    const SHEET_DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTE8Ga_ayS7dMQ3novYHY9WtJFqaIPIqopKjz6s9qT5wwsWfPGXyBhe0tuEn4eKkJz1DjK1gVbYXvgN/pub?gid=81907815&single=true&output=csv&_t=" + new Date().getTime();
+  const SHEET_DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTE8Ga_ayS7dMQ3novYHY9WtJFqaIPIqopKjz6s9qT5wwsWfPGXyBhe0tuEn4eKkJz1DjK1gVbYXvgN/pub?gid=81907815&single=true&output=csv&_t=" + new Date().getTime();
 
-    let businessRecords = [];
+  let businessRecords = [];
 
-    window.onload = function() {
-        Papa.parse(SHEET_DATA_URL, {
-            download: true,
-            header: true,
-            skipEmptyLines: true,
-            complete: function(parsed) {
-                businessRecords = parsed.data.filter(row => {
-                    let mode = getVal(row, "CASH / CHEQUE").toLowerCase();
-                    let deployed = getVal(row, "Currently Deployed ?").toLowerCase();
-                    
-                    if (mode.includes("cheque bad") || mode.includes("bad debt")) return false;
-                    if (deployed === "no") return false;
-                    return true;
-                });
-                
-                initDropdowns();
-            },
-            error: function(err) {
-                alert("Error loading Google Sheet data.");
-            }
-        });
-    };
+  window.onload = function() {
+    Papa.parse(SHEET_DATA_URL, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: function(parsed) {
+        businessRecords = parsed.data.filter(row => {
+          let mode = getVal(row, "CASH / CHEQUE").toLowerCase();
+          let deployed = getVal(row, "Currently Deployed ?").toLowerCase();
 
-    function getVal(row, colName) {
-        if (!row) return '';
-        if (row[colName] !== undefined) return row[colName].toString().trim();
-        
-        let target = colName.toLowerCase().replace(/[^a-z0-9]/g, '');
-        for (let key in row) {
-            if (key.toLowerCase().replace(/[^a-z0-9]/g, '') === target) {
-                return row[key].toString().trim();
-            }
-        }
-        return '';
-    }
-
-    function cleanNum(inputVal) {
-        if (!inputVal) return 0;
-        let cleaned = inputVal.toString().replace(/[^0-9.%-]/g, "");
-        if (cleaned.includes('%')) return parseFloat(cleaned.replace('%', '')) / 100;
-        let parsed = parseFloat(cleaned);
-        return isNaN(parsed) ? 0 : parsed;
-    }
-
-    function parseRatePercent(rateStr) {
-        if (!rateStr) return 0;
-        let cleaned = rateStr.toString().replace(/[^0-9.%-]/g, "");
-        let num = parseFloat(cleaned);
-        return isNaN(num) ? 0 : num;
-    }
-
-    function formatINR(num) {
-        if (!num || num === 0) return '₹0';
-        return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(num);
-    }
-
-    function switchMode(mode) {
-        document.getElementById('btn-mode-firm').classList.toggle('active', mode === 'firm');
-        document.getElementById('btn-mode-family').classList.toggle('active', mode === 'family');
-        document.getElementById('firm-view-container').classList.toggle('hidden', mode !== 'firm');
-        document.getElementById('family-view-container').classList.toggle('hidden', mode !== 'family');
-    }
-
-    function initDropdowns() {
-        const firmSelect = document.getElementById('party-select');
-        firmSelect.innerHTML = '<option value="">-- Choose a Firm --</option>';
-        
-        const familySelect = document.getElementById('family-select');
-        familySelect.innerHTML = '<option value="">-- Choose Member --</option>';
-
-        let uniqueFirms = new Set();
-        let uniqueFamilyMembers = new Set();
-
-        businessRecords.forEach(record => {
-            let firm = getVal(record, "Money Lent To");
-            if (firm) uniqueFirms.add(firm);
-
-            let family = getVal(record, "Family Member");
-            if (family) uniqueFamilyMembers.add(family);
+          if (mode.includes("cheque bad") || mode.includes("bad debt")) return false;
+          if (deployed === "no") return false;
+          return true;
         });
 
-        uniqueFirms.forEach(firm => {
-            let option = document.createElement('option');
-            option.value = firm;
-            option.innerHTML = firm;
-            firmSelect.appendChild(option);
-        });
+        initDropdowns();
+      },
+      error: function(err) {
+        alert("Error loading Google Sheet data.");
+      }
+    });
+  };
 
-        uniqueFamilyMembers.forEach(member => {
-            let option = document.createElement('option');
-            option.value = member;
-            option.innerHTML = member;
-            familySelect.appendChild(option);
-        });
+  function getVal(row, colName) {
+    if (!row) return '';
+    if (row[colName] !== undefined) return row[colName].toString().trim();
 
-        // Add "Total (All members)" at the bottom of the list
-        let totalOption = document.createElement('option');
-        totalOption.value = "Total (All members)";
-        totalOption.innerHTML = "Total (All members)";
-        familySelect.appendChild(totalOption);
+    let target = colName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    for (let key in row) {
+      if (key.toLowerCase().replace(/[^a-z0-9]/g, '') === target) {
+        return row[key].toString().trim();
+      }
+    }
+    return '';
+  }
+
+  function cleanNum(inputVal) {
+    if (!inputVal) return 0;
+    let cleaned = inputVal.toString().replace(/[^0-9.%-]/g, "");
+    if (cleaned.includes('%')) return parseFloat(cleaned.replace('%', '')) / 100;
+    let parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+
+  function parseRatePercent(rateStr) {
+    if (!rateStr) return 0;
+    let cleaned = rateStr.toString().replace(/[^0-9.%-]/g, "");
+    let num = parseFloat(cleaned);
+    return isNaN(num) ? 0 : num;
+  }
+
+  function formatINR(num) {
+    if (!num || num === 0) return '₹0';
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(num);
+  }
+
+  function switchMode(mode) {
+    document.getElementById('btn-mode-firm').classList.toggle('active', mode === 'firm');
+    document.getElementById('btn-mode-family').classList.toggle('active', mode === 'family');
+    document.getElementById('firm-view-container').classList.toggle('hidden', mode !== 'firm');
+    document.getElementById('family-view-container').classList.toggle('hidden', mode !== 'family');
+    document.getElementById('toggle-pill').classList.toggle('right', mode === 'family');
+  }
+
+  function initDropdowns() {
+    const firmSelect = document.getElementById('party-select');
+    firmSelect.innerHTML = '<option value="">-- Choose a Firm --</option>';
+
+    const familySelect = document.getElementById('family-select');
+    familySelect.innerHTML = '<option value="">-- Choose Member --</option>';
+
+    let uniqueFirms = new Set();
+    let uniqueFamilyMembers = new Set();
+
+    businessRecords.forEach(record => {
+      let firm = getVal(record, "Money Lent To");
+      if (firm) uniqueFirms.add(firm);
+
+      let family = getVal(record, "Family Member");
+      if (family) uniqueFamilyMembers.add(family);
+    });
+
+    uniqueFirms.forEach(firm => {
+      let option = document.createElement('option');
+      option.value = firm;
+      option.innerHTML = firm;
+      firmSelect.appendChild(option);
+    });
+
+    uniqueFamilyMembers.forEach(member => {
+      let option = document.createElement('option');
+      option.value = member;
+      option.innerHTML = member;
+      familySelect.appendChild(option);
+    });
+
+    let totalOption = document.createElement('option');
+    totalOption.value = "Total (All members)";
+    totalOption.innerHTML = "Total (All members)";
+    familySelect.appendChild(totalOption);
+  }
+
+  function handlePartySelection() {
+    const selectedFirm = document.getElementById('party-select').value;
+    if (!selectedFirm) { resetCalculator(); return; }
+
+    const matchingRows = businessRecords.filter(r => getVal(r, "Money Lent To") === selectedFirm);
+    if (matchingRows.length === 0) return;
+
+    const firstRow = matchingRows[0];
+    const rawBroker = getVal(firstRow, "Broker");
+    const tdsField = getVal(firstRow, "Does Party Deduct TDS").toLowerCase();
+    const isTdsYes = (tdsField === 'yes' || tdsField === 'y' || tdsField === '1');
+
+    let familyMap = {};
+    let totalPrincipal = 0;
+
+    matchingRows.forEach(r => {
+      let member = getVal(r, "Family Member") || "Unknown";
+      let amt = cleanNum(getVal(r, "Principal Amount"));
+      familyMap[member] = (familyMap[member] || 0) + amt;
+      totalPrincipal += amt;
+    });
+
+    let familySplitText = Object.entries(familyMap)
+      .map(([mem, amt]) => `${mem}: ${formatINR(amt)}`)
+      .join('<br>');
+
+    let chRateNum = parseRatePercent(getVal(firstRow, "Monthly IR (Cheque)"));
+    let caRateNum = parseRatePercent(getVal(firstRow, "Monthly IR (Cash)"));
+    let totalRateNum = chRateNum + caRateNum;
+    let formattedTotalRate = (Math.round(totalRateNum * 100) / 100) + '%';
+
+    let statuses = matchingRows.map(r => getVal(r, "Latest Due Interest Paid Status")).filter(Boolean);
+    let uniqueStatuses = [...new Set(statuses)];
+    let aggregatedStatus = uniqueStatuses.join(' and ');
+
+    let fullChequeTotal = matchingRows.reduce((sum, r) => sum + cleanNum(getVal(r, "Full Yr 365 Days Int (Cheque)")), 0);
+    let fullCashTotal = matchingRows.reduce((sum, r) => sum + cleanNum(getVal(r, "Full Yr 365 Days Int (Cash)")), 0);
+    let fullGrandTotal = matchingRows.reduce((sum, r) => sum + cleanNum(getVal(r, "Full Yr 365 Days Int (Total)")), 0);
+
+    document.getElementById('info-amount').innerText = formatINR(totalPrincipal);
+    document.getElementById('info-family-split').innerHTML = familySplitText || 'N/A';
+    document.getElementById('info-broker').innerText = rawBroker || 'N/A';
+    document.getElementById('info-fy-start').innerText = getVal(firstRow, "Start Date (Current FY)") || 'N/A';
+    document.getElementById('info-cheque-rate').innerText = getVal(firstRow, "Monthly IR (Cheque)") || '0%';
+    document.getElementById('info-cash-rate').innerText = getVal(firstRow, "Monthly IR (Cash)") || '0%';
+    document.getElementById('info-monthly-rate-total').innerText = formattedTotalRate;
+    document.getElementById('info-frequency').innerText = getVal(firstRow, "Interest Due Frequency") || 'N/A';
+    document.getElementById('info-tds').innerText = isTdsYes ? 'Yes (10%)' : 'No';
+    document.getElementById('info-payment-status').innerText = aggregatedStatus || 'N/A';
+
+    document.getElementById('info-full-cheque').innerText = formatINR(fullChequeTotal);
+    document.getElementById('info-full-cash').innerText = formatINR(fullCashTotal);
+    document.getElementById('info-full-total').innerText = formatINR(fullGrandTotal);
+
+    document.getElementById('details-card').classList.remove('hidden');
+    document.getElementById('quarter-select').value = "";
+    document.getElementById('start-date').value = "";
+    document.getElementById('end-date').value = "";
+    document.getElementById('results-section').classList.add('hidden');
+
+    if (rawBroker.toLowerCase() === 'mitesh') {
+      document.getElementById('mitesh-section').classList.remove('hidden');
+      document.getElementById('standard-date-section').classList.add('hidden');
+    } else {
+      document.getElementById('standard-date-section').classList.remove('hidden');
+      document.getElementById('mitesh-section').classList.add('hidden');
+    }
+  }
+
+  function handleStartDateChange() {
+    const startValue = document.getElementById('start-date').value;
+    const endDateInput = document.getElementById('end-date');
+    if (startValue) {
+      let selectedDate = new Date(startValue);
+      selectedDate.setDate(selectedDate.getDate() + 1);
+      endDateInput.min = selectedDate.toISOString().split('T')[0];
+    }
+    processCalculations();
+  }
+
+  function processCalculations() {
+    const selectedFirm = document.getElementById('party-select').value;
+    if (!selectedFirm) return;
+
+    const matchingRows = businessRecords.filter(r => getVal(r, "Money Lent To") === selectedFirm);
+    if (matchingRows.length === 0) return;
+
+    const firstRow = matchingRows[0];
+    const rawBroker = getVal(firstRow, "Broker").toLowerCase();
+    let finalDays = 0;
+
+    if (rawBroker === 'mitesh') {
+      const qVal = document.getElementById('quarter-select').value;
+      if (!qVal) return;
+      finalDays = parseInt(qVal);
+      document.getElementById('mitesh-days-text').innerText = "Number of Days: " + finalDays;
+      document.getElementById('mitesh-days-wrapper').classList.remove('hidden');
+    } else {
+      const sDate = document.getElementById('start-date').value;
+      const eDate = document.getElementById('end-date').value;
+      if (!sDate || !eDate) return;
+
+      finalDays = Math.round((new Date(eDate) - new Date(sDate)) / (1000 * 60 * 60 * 24)) + 1;
+      document.getElementById('calculated-days-text').innerText = "Number of Days: " + (finalDays > 0 ? finalDays : 0);
+      document.getElementById('days-display-wrapper').classList.remove('hidden');
     }
 
-    function handlePartySelection() {
-        const selectedFirm = document.getElementById('party-select').value;
-        if (!selectedFirm) { resetCalculator(); return; }
+    if (finalDays <= 0) return;
 
-        const matchingRows = businessRecords.filter(r => getVal(r, "Money Lent To") === selectedFirm);
-        if (matchingRows.length === 0) return;
+    let totalChequeGross = 0, totalChequeTds = 0, totalChequeNet = 0, totalCashInterest = 0;
 
-        const firstRow = matchingRows[0];
-        const rawBroker = getVal(firstRow, "Broker");
-        const tdsField = getVal(firstRow, "Does Party Deduct TDS").toLowerCase();
-        const isTdsYes = (tdsField === 'yes' || tdsField === 'y' || tdsField === '1');
+    matchingRows.forEach(row => {
+      let deployed = getVal(row, "Currently Deployed ?").toLowerCase();
+      if (deployed === "maybe") return;
 
-        let familyMap = {};
-        let totalPrincipal = 0;
+      let principalAmount = cleanNum(getVal(row, "Principal Amount"));
+      let mode = getVal(row, "CASH / CHEQUE").toLowerCase();
 
-        matchingRows.forEach(r => {
-            let member = getVal(r, "Family Member") || "Unknown";
-            let amt = cleanNum(getVal(r, "Principal Amount"));
-            familyMap[member] = (familyMap[member] || 0) + amt;
-            totalPrincipal += amt;
-        });
+      let chequeRateStr = getVal(row, "Monthly IR (Cheque)");
+      let chequeMonthlyRate = cleanNum(chequeRateStr);
+      if (!chequeRateStr.includes('%') && chequeMonthlyRate > 0.15) chequeMonthlyRate /= 100;
 
-        let familySplitText = Object.entries(familyMap)
-            .map(([mem, amt]) => `• <b>${mem}:</b> ${formatINR(amt)}`)
-            .join('<br>');
+      let cashRateStr = getVal(row, "Monthly IR (Cash)");
+      let cashMonthlyRate = cleanNum(cashRateStr);
+      if (!cashRateStr.includes('%') && cashMonthlyRate > 0.15) cashMonthlyRate /= 100;
 
-        let chRateNum = parseRatePercent(getVal(firstRow, "Monthly IR (Cheque)"));
-        let caRateNum = parseRatePercent(getVal(firstRow, "Monthly IR (Cash)"));
-        let totalRateNum = chRateNum + caRateNum;
-        let formattedTotalRate = (Math.round(totalRateNum * 100) / 100) + '%';
+      const tdsField = getVal(row, "Does Party Deduct TDS").toLowerCase();
+      const isTdsEnabled = (tdsField === 'yes' || tdsField === 'y' || tdsField === '1');
 
-        let statuses = matchingRows.map(r => getVal(r, "Latest Due Interest Paid Status")).filter(Boolean);
-        let uniqueStatuses = [...new Set(statuses)];
-        let aggregatedStatus = uniqueStatuses.join(' and ');
+      let chequeGross = (mode === 'cash') ? 0 : (principalAmount * chequeMonthlyRate / 30 * finalDays);
+      let chequeTds = isTdsEnabled ? (chequeGross * 0.10) : 0;
+      let chequeNet = chequeGross - chequeTds;
+      let cashInt = (mode === 'cheque') ? 0 : (principalAmount * cashMonthlyRate / 30 * finalDays);
 
-        let fullChequeTotal = matchingRows.reduce((sum, r) => sum + cleanNum(getVal(r, "Full Yr 365 Days Int (Cheque)")), 0);
-        let fullCashTotal = matchingRows.reduce((sum, r) => sum + cleanNum(getVal(r, "Full Yr 365 Days Int (Cash)")), 0);
-        let fullGrandTotal = matchingRows.reduce((sum, r) => sum + cleanNum(getVal(r, "Full Yr 365 Days Int (Total)")), 0);
+      totalChequeGross += chequeGross;
+      totalChequeTds += chequeTds;
+      totalChequeNet += chequeNet;
+      totalCashInterest += cashInt;
+    });
 
-        document.getElementById('info-amount').innerText = formatINR(totalPrincipal);
-        document.getElementById('info-family-split').innerHTML = familySplitText || 'N/A';
-        document.getElementById('info-broker').innerText = rawBroker || 'N/A';
-        document.getElementById('info-fy-start').innerText = getVal(firstRow, "Start Date (Current FY)") || 'N/A';
-        document.getElementById('info-cheque-rate').innerText = getVal(firstRow, "Monthly IR (Cheque)") || '0%';
-        document.getElementById('info-cash-rate').innerText = getVal(firstRow, "Monthly IR (Cash)") || '0%';
-        document.getElementById('info-monthly-rate-total').innerText = formattedTotalRate;
-        document.getElementById('info-frequency').innerText = getVal(firstRow, "Interest Due Frequency") || 'N/A';
-        document.getElementById('info-tds').innerText = isTdsYes ? 'Yes (10%)' : 'No';
-        document.getElementById('info-payment-status').innerText = aggregatedStatus || 'N/A';
+    document.getElementById('res-cheque-gross').innerText = formatINR(totalChequeGross);
+    document.getElementById('res-cheque-tds').innerText = formatINR(totalChequeTds);
+    document.getElementById('res-cheque-net').innerText = formatINR(totalChequeNet);
+    document.getElementById('res-cash-interest').innerText = formatINR(totalCashInterest);
+    document.getElementById('res-gross-total').innerText = formatINR(totalChequeGross + totalCashInterest);
+    document.getElementById('res-net-total').innerText = formatINR(totalChequeNet + totalCashInterest);
 
-        document.getElementById('info-full-cheque').innerText = formatINR(fullChequeTotal);
-        document.getElementById('info-full-cash').innerText = formatINR(fullCashTotal);
-        document.getElementById('info-full-total').innerText = formatINR(fullGrandTotal);
+    document.getElementById('results-section').classList.remove('hidden');
 
-        document.getElementById('details-card').classList.remove('hidden');
-        document.getElementById('quarter-select').value = "";
-        document.getElementById('start-date').value = "";
-        document.getElementById('end-date').value = "";
-        document.getElementById('results-section').classList.add('hidden');
+    setTimeout(() => {
+      document.getElementById('results-section').scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, 150);
+  }
 
-        if (rawBroker.toLowerCase() === 'mitesh') {
-            document.getElementById('mitesh-section').classList.remove('hidden');
-            document.getElementById('standard-date-section').classList.add('hidden');
-        } else {
-            document.getElementById('standard-date-section').classList.remove('hidden');
-            document.getElementById('mitesh-section').classList.add('hidden');
-        }
+  function handleFamilySelection() {
+    const selectedMember = document.getElementById('family-select').value;
+    if (!selectedMember) {
+      document.getElementById('family-results-section').classList.add('hidden');
+      return;
     }
 
-    function handleStartDateChange() {
-        const startValue = document.getElementById('start-date').value;
-        const endDateInput = document.getElementById('end-date');
-        if (startValue) {
-            let selectedDate = new Date(startValue);
-            selectedDate.setDate(selectedDate.getDate() + 1);
-            endDateInput.min = selectedDate.toISOString().split('T')[0];
-        }
-        processCalculations();
-    }
+    let totalChequeLent = 0, totalCashLent = 0, totalLentSum = 0;
+    let totalFullCheque = 0, totalFullCash = 0, totalFullYearSum = 0;
+    let totalCurCheque = 0, totalCurCash = 0, totalCurYearSum = 0;
 
-    function processCalculations() {
-        const selectedFirm = document.getElementById('party-select').value;
-        if (!selectedFirm) return;
+    const tbody = document.getElementById('family-table-body');
+    tbody.innerHTML = "";
 
-        const matchingRows = businessRecords.filter(r => getVal(r, "Money Lent To") === selectedFirm);
-        if (matchingRows.length === 0) return;
+    if (selectedMember === "Total (All members)") {
+      let firmGroupMap = {};
 
-        const firstRow = matchingRows[0];
-        const rawBroker = getVal(firstRow, "Broker").toLowerCase();
-        let finalDays = 0;
+      businessRecords.forEach(record => {
+        let firmName = getVal(record, "Money Lent To");
+        let totalAmt = cleanNum(getVal(record, "Principal Amount"));
+        let mode = getVal(record, "CASH / CHEQUE").toLowerCase();
+        let deployed = getVal(record, "Currently Deployed ?").toLowerCase();
 
-        if (rawBroker === 'mitesh') {
-            const qVal = document.getElementById('quarter-select').value;
-            if (!qVal) return;
-            finalDays = parseInt(qVal);
-            document.getElementById('mitesh-days-text').innerText = "Number of Days: " + finalDays;
-            document.getElementById('mitesh-days-wrapper').classList.remove('hidden');
-        } else {
-            const sDate = document.getElementById('start-date').value;
-            const eDate = document.getElementById('end-date').value;
-            if (!sDate || !eDate) return;
+        let chequeAmt = (mode === 'cash') ? 0 : totalAmt;
+        let cashAmt = (mode === 'cheque') ? 0 : totalAmt;
 
-            finalDays = Math.round((new Date(eDate) - new Date(sDate)) / (1000 * 60 * 60 * 24)) + 1;
-            document.getElementById('calculated-days-text').innerText = "Number of Days: " + (finalDays > 0 ? finalDays : 0);
-            document.getElementById('days-display-wrapper').classList.remove('hidden');
-        }
+        let fyCheque = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cheque)"));
+        let fyCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cash)"));
+        let fyTotal = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Total)"));
 
-        if (finalDays <= 0) return;
+        let curCheque = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Income (Cheque)"));
+        let curCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Income (Cash)"));
+        let curTotal = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Int Income (Total)"));
 
-        let totalChequeGross = 0, totalChequeTds = 0, totalChequeNet = 0, totalCashInterest = 0;
+        let pStatus = getVal(record, "Latest Due Interest Paid Status");
 
-        matchingRows.forEach(row => {
-            let deployed = getVal(row, "Currently Deployed ?").toLowerCase();
-            if (deployed === "maybe") return;
-
-            let principalAmount = cleanNum(getVal(row, "Principal Amount"));
-            let mode = getVal(row, "CASH / CHEQUE").toLowerCase();
-
-            let chequeRateStr = getVal(row, "Monthly IR (Cheque)");
-            let chequeMonthlyRate = cleanNum(chequeRateStr);
-            if (!chequeRateStr.includes('%') && chequeMonthlyRate > 0.15) chequeMonthlyRate /= 100;
-
-            let cashRateStr = getVal(row, "Monthly IR (Cash)");
-            let cashMonthlyRate = cleanNum(cashRateStr);
-            if (!cashRateStr.includes('%') && cashMonthlyRate > 0.15) cashMonthlyRate /= 100;
-
-            const tdsField = getVal(row, "Does Party Deduct TDS").toLowerCase();
-            const isTdsEnabled = (tdsField === 'yes' || tdsField === 'y' || tdsField === '1');
-
-            let chequeGross = (mode === 'cash') ? 0 : (principalAmount * chequeMonthlyRate / 30 * finalDays);
-            let chequeTds = isTdsEnabled ? (chequeGross * 0.10) : 0;
-            let chequeNet = chequeGross - chequeTds;
-            let cashInt = (mode === 'cheque') ? 0 : (principalAmount * cashMonthlyRate / 30 * finalDays);
-
-            totalChequeGross += chequeGross;
-            totalChequeTds += chequeTds;
-            totalChequeNet += chequeNet;
-            totalCashInterest += cashInt;
-        });
-
-        document.getElementById('res-cheque-gross').innerText = formatINR(totalChequeGross);
-        document.getElementById('res-cheque-tds').innerText = formatINR(totalChequeTds);
-        document.getElementById('res-cheque-net').innerText = formatINR(totalChequeNet);
-        document.getElementById('res-cash-interest').innerText = formatINR(totalCashInterest);
-        document.getElementById('res-gross-total').innerText = formatINR(totalChequeGross + totalCashInterest);
-        document.getElementById('res-net-total').innerText = formatINR(totalChequeNet + totalCashInterest);
-
-        document.getElementById('results-section').classList.remove('hidden');
-
-        setTimeout(() => {
-            document.getElementById('results-section').scrollIntoView({ behavior: 'smooth', block: 'end' });
-        }, 150);
-    }
-
-    function handleFamilySelection() {
-        const selectedMember = document.getElementById('family-select').value;
-        if (!selectedMember) {
-            document.getElementById('family-results-section').classList.add('hidden');
-            return;
+        if (!firmGroupMap[firmName]) {
+          firmGroupMap[firmName] = {
+            firmName: firmName,
+            chequeAmt: 0, cashAmt: 0, totalAmt: 0,
+            mChequeRate: getVal(record, "Monthly IR (Cheque)") || '0%',
+            mCashRate: getVal(record, "Monthly IR (Cash)") || '0%',
+            mTotalRate: getVal(record, "Monthly IR Total") || '0%',
+            fyCheque: 0, fyCash: 0, fyTotal: 0,
+            curCheque: 0, curCash: 0, curTotal: 0,
+            statuses: [],
+            hasMaybe: false
+          };
         }
 
-        let totalChequeLent = 0, totalCashLent = 0, totalLentSum = 0;
-        let totalFullCheque = 0, totalFullCash = 0, totalFullYearSum = 0;
-        let totalCurCheque = 0, totalCurCash = 0, totalCurYearSum = 0;
+        firmGroupMap[firmName].chequeAmt += chequeAmt;
+        firmGroupMap[firmName].cashAmt += cashAmt;
+        firmGroupMap[firmName].totalAmt += totalAmt;
+        firmGroupMap[firmName].fyCheque += fyCheque;
+        firmGroupMap[firmName].fyCash += fyCash;
+        firmGroupMap[firmName].fyTotal += fyTotal;
+        firmGroupMap[firmName].curCheque += curCheque;
+        firmGroupMap[firmName].curCash += curCash;
+        firmGroupMap[firmName].curTotal += curTotal;
 
-        const tbody = document.getElementById('family-table-body');
-        tbody.innerHTML = "";
+        if (pStatus) firmGroupMap[firmName].statuses.push(pStatus);
+        if (deployed === 'maybe') firmGroupMap[firmName].hasMaybe = true;
 
-        if (selectedMember === "Total (All members)") {
-            let firmGroupMap = {};
+        totalChequeLent += chequeAmt;
+        totalCashLent += cashAmt;
+        totalLentSum += totalAmt;
 
-            businessRecords.forEach(record => {
-                let firmName = getVal(record, "Money Lent To");
-                let totalAmt = cleanNum(getVal(record, "Principal Amount"));
-                let mode = getVal(record, "CASH / CHEQUE").toLowerCase();
-                let deployed = getVal(record, "Currently Deployed ?").toLowerCase();
+        totalFullCheque += fyCheque;
+        totalFullCash += fyCash;
+        totalFullYearSum += fyTotal;
 
-                let chequeAmt = (mode === 'cash') ? 0 : totalAmt;
-                let cashAmt = (mode === 'cheque') ? 0 : totalAmt;
+        totalCurCheque += curCheque;
+        totalCurCash += curCash;
+        totalCurYearSum += curTotal;
+      });
 
-                let fyCheque = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cheque)"));
-                let fyCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cash)"));
-                let fyTotal = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Total)"));
+      Object.values(firmGroupMap).forEach(group => {
+        let uniqueStatuses = [...new Set(group.statuses)];
+        let aggStatus = uniqueStatuses.join(' and ') || 'Paid';
+        let pStatusLower = aggStatus.toLowerCase();
+        let statusBadge = `<span class="badge badge-green">${aggStatus}</span>`;
 
-                let curCheque = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Income (Cheque)"));
-                let curCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Income (Cash)"));
-                let curTotal = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Int Income (Total)"));
-
-                let pStatus = getVal(record, "Latest Due Interest Paid Status");
-
-                if (!firmGroupMap[firmName]) {
-                    firmGroupMap[firmName] = {
-                        firmName: firmName,
-                        chequeAmt: 0, cashAmt: 0, totalAmt: 0,
-                        mChequeRate: getVal(record, "Monthly IR (Cheque)") || '0%',
-                        mCashRate: getVal(record, "Monthly IR (Cash)") || '0%',
-                        mTotalRate: getVal(record, "Monthly IR Total") || '0%',
-                        fyCheque: 0, fyCash: 0, fyTotal: 0,
-                        curCheque: 0, curCash: 0, curTotal: 0,
-                        statuses: [],
-                        hasMaybe: false
-                    };
-                }
-
-                firmGroupMap[firmName].chequeAmt += chequeAmt;
-                firmGroupMap[firmName].cashAmt += cashAmt;
-                firmGroupMap[firmName].totalAmt += totalAmt;
-                firmGroupMap[firmName].fyCheque += fyCheque;
-                firmGroupMap[firmName].fyCash += fyCash;
-                firmGroupMap[firmName].fyTotal += fyTotal;
-                firmGroupMap[firmName].curCheque += curCheque;
-                firmGroupMap[firmName].curCash += curCash;
-                firmGroupMap[firmName].curTotal += curTotal;
-
-                if (pStatus) firmGroupMap[firmName].statuses.push(pStatus);
-                if (deployed === 'maybe') firmGroupMap[firmName].hasMaybe = true;
-
-                totalChequeLent += chequeAmt;
-                totalCashLent += cashAmt;
-                totalLentSum += totalAmt;
-
-                totalFullCheque += fyCheque;
-                totalFullCash += fyCash;
-                totalFullYearSum += fyTotal;
-
-                totalCurCheque += curCheque;
-                totalCurCash += curCash;
-                totalCurYearSum += curTotal;
-            });
-
-            Object.values(firmGroupMap).forEach(group => {
-                let uniqueStatuses = [...new Set(group.statuses)];
-                let aggStatus = uniqueStatuses.join(' and ') || 'Paid';
-                let pStatusLower = aggStatus.toLowerCase();
-                let statusBadge = `<span class="badge-green">${aggStatus}</span>`;
-
-                if (pStatusLower.includes('pend') || pStatusLower.includes('overdue') || pStatusLower.includes('unpaid') || pStatusLower.includes('due')) {
-                    statusBadge = `<span class="badge-red">⚠️ ${aggStatus}</span>`;
-                }
-                if (group.hasMaybe) {
-                    statusBadge += ` <span class="badge-orange">⚠️ Maybe</span>`;
-                }
-
-                let tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td style="font-weight:600;">${group.firmName}</td>
-                    <td>${formatINR(group.chequeAmt)}</td>
-                    <td>${formatINR(group.cashAmt)}</td>
-                    <td style="font-weight:600;">${formatINR(group.totalAmt)}</td>
-                    <td>${group.mChequeRate} / ${group.mCashRate} / <b>${group.mTotalRate}</b></td>
-                    <td>${formatINR(group.fyCheque)} / ${formatINR(group.fyCash)} / <b>${formatINR(group.fyTotal)}</b></td>
-                    <td>${formatINR(group.curCheque)} / ${formatINR(group.curCash)} / <b>${formatINR(group.curTotal)}</b></td>
-                    <td>${statusBadge}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-        } else {
-            businessRecords.forEach(record => {
-                if (getVal(record, "Family Member") === selectedMember) {
-                    let firmName = getVal(record, "Money Lent To");
-                    let totalAmt = cleanNum(getVal(record, "Principal Amount"));
-                    let mode = getVal(record, "CASH / CHEQUE").toLowerCase();
-                    let deployed = getVal(record, "Currently Deployed ?").toLowerCase();
-
-                    let chequeAmt = (mode === 'cash') ? 0 : totalAmt;
-                    let cashAmt = (mode === 'cheque') ? 0 : totalAmt;
-
-                    let mChequeRate = getVal(record, "Monthly IR (Cheque)") || '0%';
-                    let mCashRate = getVal(record, "Monthly IR (Cash)") || '0%';
-                    let mTotalRate = getVal(record, "Monthly IR Total") || '0%';
-
-                    let fyCheque = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cheque)"));
-                    let fyCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cash)"));
-                    let fyTotal = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Total)"));
-
-                    let curCheque = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Income (Cheque)"));
-                    let curCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Income (Cash)"));
-                    let curTotal = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Int Income (Total)"));
-
-                    totalChequeLent += chequeAmt;
-                    totalCashLent += cashAmt;
-                    totalLentSum += totalAmt;
-
-                    totalFullCheque += fyCheque;
-                    totalFullCash += fyCash;
-                    totalFullYearSum += fyTotal;
-
-                    totalCurCheque += curCheque;
-                    totalCurCash += curCash;
-                    totalCurYearSum += curTotal;
-
-                    let pStatus = getVal(record, "Latest Due Interest Paid Status");
-                    let pStatusLower = pStatus.toLowerCase();
-                    let statusBadge = `<span class="badge-green">${pStatus || 'Paid'}</span>`;
-
-                    if (pStatusLower.includes('pend') || pStatusLower.includes('overdue') || pStatusLower.includes('unpaid') || pStatusLower.includes('due')) {
-                        statusBadge = `<span class="badge-red">⚠️ ${pStatus}</span>`;
-                    }
-                    if (deployed === 'maybe') {
-                        statusBadge += ` <span class="badge-orange">⚠️ Maybe</span>`;
-                    }
-
-                    let tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td style="font-weight:600;">${firmName}</td>
-                        <td>${formatINR(chequeAmt)}</td>
-                        <td>${formatINR(cashAmt)}</td>
-                        <td style="font-weight:600;">${formatINR(totalAmt)}</td>
-                        <td>${mChequeRate} / ${mCashRate} / <b>${mTotalRate}</b></td>
-                        <td>${formatINR(fyCheque)} / ${formatINR(fyCash)} / <b>${formatINR(fyTotal)}</b></td>
-                        <td>${formatINR(curCheque)} / ${formatINR(curCash)} / <b>${formatINR(curTotal)}</b></td>
-                        <td>${statusBadge}</td>
-                    `;
-                    tbody.appendChild(tr);
-                }
-            });
+        if (pStatusLower.includes('pend') || pStatusLower.includes('overdue') || pStatusLower.includes('unpaid') || pStatusLower.includes('due')) {
+          statusBadge = `<span class="badge badge-red">${aggStatus}</span>`;
+        }
+        if (group.hasMaybe) {
+          statusBadge += ` <span class="badge badge-orange">Maybe</span>`;
         }
 
-        document.getElementById('fam-cheque-lent').innerText = formatINR(totalChequeLent);
-        document.getElementById('fam-cash-lent').innerText = formatINR(totalCashLent);
-        document.getElementById('fam-total-lent').innerText = formatINR(totalLentSum);
-
-        document.getElementById('fam-fy-cheque').innerText = formatINR(totalFullCheque);
-        document.getElementById('fam-fy-cash').innerText = formatINR(totalFullCash);
-        document.getElementById('fam-fy-total').innerText = formatINR(totalFullYearSum);
-
-        document.getElementById('fam-cur-cheque').innerText = formatINR(totalCurCheque);
-        document.getElementById('fam-cur-cash').innerText = formatINR(totalCurCash);
-        document.getElementById('fam-cur-total').innerText = formatINR(totalCurYearSum);
-
-        const tfoot = document.getElementById('family-table-foot');
-        tfoot.innerHTML = `
-            <tr>
-                <td>GRAND TOTAL</td>
-                <td>${formatINR(totalChequeLent)}</td>
-                <td>${formatINR(totalCashLent)}</td>
-                <td>${formatINR(totalLentSum)}</td>
-                <td>-</td>
-                <td>${formatINR(totalFullCheque)} / ${formatINR(totalFullCash)} / <b>${formatINR(totalFullYearSum)}</b></td>
-                <td>${formatINR(totalCurCheque)} / ${formatINR(totalCurCash)} / <b>${formatINR(totalCurYearSum)}</b></td>
-                <td>-</td>
-            </tr>
+        let tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-weight:700;font-family:'Inter',sans-serif;">${group.firmName}</td>
+          <td>${formatINR(group.chequeAmt)}</td>
+          <td>${formatINR(group.cashAmt)}</td>
+          <td style="font-weight:700;">${formatINR(group.totalAmt)}</td>
+          <td>${group.mChequeRate} / ${group.mCashRate} / <b>${group.mTotalRate}</b></td>
+          <td>${formatINR(group.fyCheque)} / ${formatINR(group.fyCash)} / <b>${formatINR(group.fyTotal)}</b></td>
+          <td>${formatINR(group.curCheque)} / ${formatINR(group.curCash)} / <b>${formatINR(group.curTotal)}</b></td>
+          <td>${statusBadge}</td>
         `;
+        tbody.appendChild(tr);
+      });
 
-        document.getElementById('family-results-section').classList.remove('hidden');
-    }
+    } else {
+      businessRecords.forEach(record => {
+        if (getVal(record, "Family Member") === selectedMember) {
+          let firmName = getVal(record, "Money Lent To");
+          let totalAmt = cleanNum(getVal(record, "Principal Amount"));
+          let mode = getVal(record, "CASH / CHEQUE").toLowerCase();
+          let deployed = getVal(record, "Currently Deployed ?").toLowerCase();
 
-    function resetCalculator() {
-        document.getElementById('party-select').value = "";
-        document.getElementById('family-select').value = "";
-        document.getElementById('quarter-select').value = "";
-        document.getElementById('start-date').value = "";
-        document.getElementById('end-date').value = "";
+          let chequeAmt = (mode === 'cash') ? 0 : totalAmt;
+          let cashAmt = (mode === 'cheque') ? 0 : totalAmt;
 
-        document.getElementById('details-card').classList.add('hidden');
-        document.getElementById('mitesh-section').classList.add('hidden');
-        document.getElementById('standard-date-section').classList.add('hidden');
-        document.getElementById('results-section').classList.add('hidden');
-        document.getElementById('family-results-section').classList.add('hidden');
+          let mChequeRate = getVal(record, "Monthly IR (Cheque)") || '0%';
+          let mCashRate = getVal(record, "Monthly IR (Cash)") || '0%';
+          let mTotalRate = getVal(record, "Monthly IR Total") || '0%';
 
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+          let fyCheque = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cheque)"));
+          let fyCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cash)"));
+          let fyTotal = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Total)"));
 
-    function shareSummary() {
-        const selectedFirm = document.getElementById('party-select').value;
-        if (!selectedFirm) return;
+          let curCheque = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Income (Cheque)"));
+          let curCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Income (Cash)"));
+          let curTotal = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Int Income (Total)"));
 
-        const matchingRows = businessRecords.filter(r => getVal(r, "Money Lent To") === selectedFirm);
-        const firstRow = matchingRows[0];
-        const rawBroker = getVal(firstRow, "Broker").toLowerCase();
+          totalChequeLent += chequeAmt;
+          totalCashLent += cashAmt;
+          totalLentSum += totalAmt;
 
-        let familyMap = {};
-        matchingRows.forEach(r => {
-            let member = getVal(r, "Family Member") || "Unknown";
-            let amt = cleanNum(getVal(r, "Principal Amount"));
-            familyMap[member] = (familyMap[member] || 0) + amt;
-        });
+          totalFullCheque += fyCheque;
+          totalFullCash += fyCash;
+          totalFullYearSum += fyTotal;
 
-        let familySplitStr = Object.entries(familyMap)
-            .map(([mem, amt]) => `   • ${mem}: ${formatINR(amt)}`)
-            .join('\n');
+          totalCurCheque += curCheque;
+          totalCurCash += curCash;
+          totalCurYearSum += curTotal;
 
-        let sDate = document.getElementById('start-date').value || "N/A";
-        let eDate = document.getElementById('end-date').value || "N/A";
-        let daysStr = "0 Days";
+          let pStatus = getVal(record, "Latest Due Interest Paid Status");
+          let pStatusLower = pStatus.toLowerCase();
+          let statusBadge = `<span class="badge badge-green">${pStatus || 'Paid'}</span>`;
 
-        if (rawBroker === 'mitesh') {
-            let qVal = document.getElementById('quarter-select').value;
-            sDate = "Quarterly Operational";
-            eDate = "Quarterly Operational";
-            daysStr = `${qVal} Days`;
-        } else {
-            daysStr = document.getElementById('calculated-days-text').innerText.replace('Number of Days: ', '') + " Days";
+          if (pStatusLower.includes('pend') || pStatusLower.includes('overdue') || pStatusLower.includes('unpaid') || pStatusLower.includes('due')) {
+            statusBadge = `<span class="badge badge-red">${pStatus}</span>`;
+          }
+          if (deployed === 'maybe') {
+            statusBadge += ` <span class="badge badge-orange">Maybe</span>`;
+          }
+
+          let tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="font-weight:700;font-family:'Inter',sans-serif;">${firmName}</td>
+            <td>${formatINR(chequeAmt)}</td>
+            <td>${formatINR(cashAmt)}</td>
+            <td style="font-weight:700;">${formatINR(totalAmt)}</td>
+            <td>${mChequeRate} / ${mCashRate} / <b>${mTotalRate}</b></td>
+            <td>${formatINR(fyCheque)} / ${formatINR(fyCash)} / <b>${formatINR(fyTotal)}</b></td>
+            <td>${formatINR(curCheque)} / ${formatINR(curCash)} / <b>${formatINR(curTotal)}</b></td>
+            <td>${statusBadge}</td>
+          `;
+          tbody.appendChild(tr);
         }
-
-        const totalPrincipal = document.getElementById('info-amount').innerText;
-        const chequeGross = document.getElementById('res-cheque-gross').innerText;
-        const chequeTds = document.getElementById('res-cheque-tds').innerText;
-        const chequeNet = document.getElementById('res-cheque-net').innerText;
-        const cashInt = document.getElementById('res-cash-interest').innerText;
-        const grossTotal = document.getElementById('res-gross-total').innerText;
-        const netTotal = document.getElementById('res-net-total').innerText;
-
-        const summaryText = `📊 *Interest Computation Summary - ${selectedFirm}*\n` +
-            `1. *Total Principal Deployed:* ${totalPrincipal}\n` +
-            `2. *Funded By Split:*\n${familySplitStr}\n` +
-            `3. *Start Date:* ${sDate}\n` +
-            `4. *End Date:* ${eDate}\n` +
-            `5. *Total Number of Days:* ${daysStr}\n` +
-            `6. *Cheque Gross Interest:* ${chequeGross}\n` +
-            `7. *TDS Deducted:* ${chequeTds}\n` +
-            `8. *Cheque Net Interest:* ${chequeNet}\n` +
-            `9. *Cash Interest:* ${cashInt}\n` +
-            `10. *Gross Total Interest:* ${grossTotal}\n` +
-            `11. *Net Total Interest:* ${netTotal}\n\n` +
-            `Calculated via Ajay Family Interest Calculator`;
-
-        if (navigator.share) {
-            navigator.share({ title: `Interest Summary - ${selectedFirm}`, text: summaryText }).catch(() => {});
-        } else {
-            navigator.clipboard.writeText(summaryText).then(() => alert("Copied to clipboard!"));
-        }
+      });
     }
 
-    function shareFamilySummary() {
-        const selectedMember = document.getElementById('family-select').value;
-        if (!selectedMember) return;
+    document.getElementById('fam-cheque-lent').innerText = formatINR(totalChequeLent);
+    document.getElementById('fam-cash-lent').innerText = formatINR(totalCashLent);
+    document.getElementById('fam-total-lent').innerText = formatINR(totalLentSum);
 
-        let titleStr = (selectedMember === "Total (All members)") 
-            ? "Portfolio Summary - Overall Total" 
-            : `Portfolio Summary - ${selectedMember}`;
+    document.getElementById('fam-fy-cheque').innerText = formatINR(totalFullCheque);
+    document.getElementById('fam-fy-cash').innerText = formatINR(totalFullCash);
+    document.getElementById('fam-fy-total').innerText = formatINR(totalFullYearSum);
 
-        const summaryText = `📊 *${titleStr}*\n` +
-            `• Cheque Money Lent: ${document.getElementById('fam-cheque-lent').innerText}\n` +
-            `• Cash Money Lent: ${document.getElementById('fam-cash-lent').innerText}\n` +
-            `• Total Money Lent: ${document.getElementById('fam-total-lent').innerText}\n` +
-            `• Full Year Total Interest: ${document.getElementById('fam-fy-total').innerText}\n` +
-            `• Current FY Total Interest: ${document.getElementById('fam-cur-total').innerText}\n\n` +
-            `Calculated via Ajay Family Interest Calculator`;
+    document.getElementById('fam-cur-cheque').innerText = formatINR(totalCurCheque);
+    document.getElementById('fam-cur-cash').innerText = formatINR(totalCurCash);
+    document.getElementById('fam-cur-total').innerText = formatINR(totalCurYearSum);
 
-        if (navigator.share) {
-            navigator.share({ title: titleStr, text: summaryText }).catch(() => {});
-        } else {
-            navigator.clipboard.writeText(summaryText).then(() => alert("Copied to clipboard!"));
-        }
+    const tfoot = document.getElementById('family-table-foot');
+    tfoot.innerHTML = `
+      <tr>
+        <td>GRAND TOTAL</td>
+        <td>${formatINR(totalChequeLent)}</td>
+        <td>${formatINR(totalCashLent)}</td>
+        <td>${formatINR(totalLentSum)}</td>
+        <td>-</td>
+        <td>${formatINR(totalFullCheque)} / ${formatINR(totalFullCash)} / <b>${formatINR(totalFullYearSum)}</b></td>
+        <td>${formatINR(totalCurCheque)} / ${formatINR(totalCurCash)} / <b>${formatINR(totalCurYearSum)}</b></td>
+        <td>-</td>
+      </tr>
+    `;
+
+    document.getElementById('family-results-section').classList.remove('hidden');
+  }
+
+  function resetCalculator() {
+    document.getElementById('party-select').value = "";
+    document.getElementById('family-select').value = "";
+    document.getElementById('quarter-select').value = "";
+    document.getElementById('start-date').value = "";
+    document.getElementById('end-date').value = "";
+
+    document.getElementById('details-card').classList.add('hidden');
+    document.getElementById('mitesh-section').classList.add('hidden');
+    document.getElementById('standard-date-section').classList.add('hidden');
+    document.getElementById('results-section').classList.add('hidden');
+    document.getElementById('family-results-section').classList.add('hidden');
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function shareSummary() {
+    const selectedFirm = document.getElementById('party-select').value;
+    if (!selectedFirm) return;
+
+    const matchingRows = businessRecords.filter(r => getVal(r, "Money Lent To") === selectedFirm);
+    const firstRow = matchingRows[0];
+    const rawBroker = getVal(firstRow, "Broker").toLowerCase();
+
+    let familyMap = {};
+    matchingRows.forEach(r => {
+      let member = getVal(r, "Family Member") || "Unknown";
+      let amt = cleanNum(getVal(r, "Principal Amount"));
+      familyMap[member] = (familyMap[member] || 0) + amt;
+    });
+
+    let familySplitStr = Object.entries(familyMap)
+      .map(([mem, amt]) => `   • ${mem}: ${formatINR(amt)}`)
+      .join('\n');
+
+    let sDate = document.getElementById('start-date').value || "N/A";
+    let eDate = document.getElementById('end-date').value || "N/A";
+    let daysStr = "0 Days";
+
+    if (rawBroker === 'mitesh') {
+      let qVal = document.getElementById('quarter-select').value;
+      sDate = "Quarterly Operational";
+      eDate = "Quarterly Operational";
+      daysStr = `${qVal} Days`;
+    } else {
+      daysStr = document.getElementById('calculated-days-text').innerText.replace('Number of Days: ', '') + " Days";
     }
 
-    function printSummary() {
-        window.print();
+    const totalPrincipal = document.getElementById('info-amount').innerText;
+    const chequeGross = document.getElementById('res-cheque-gross').innerText;
+    const chequeTds = document.getElementById('res-cheque-tds').innerText;
+    const chequeNet = document.getElementById('res-cheque-net').innerText;
+    const cashInt = document.getElementById('res-cash-interest').innerText;
+    const grossTotal = document.getElementById('res-gross-total').innerText;
+    const netTotal = document.getElementById('res-net-total').innerText;
+
+    const summaryText = `📊 *Interest Computation Summary - ${selectedFirm}*\n` +
+      `1. *Total Principal Deployed:* ${totalPrincipal}\n` +
+      `2. *Funded By Split:*\n${familySplitStr}\n` +
+      `3. *Start Date:* ${sDate}\n` +
+      `4. *End Date:* ${eDate}\n` +
+      `5. *Total Number of Days:* ${daysStr}\n` +
+      `6. *Cheque Gross Interest:* ${chequeGross}\n` +
+      `7. *TDS Deducted:* ${chequeTds}\n` +
+      `8. *Cheque Net Interest:* ${chequeNet}\n` +
+      `9. *Cash Interest:* ${cashInt}\n` +
+      `10. *Gross Total Interest:* ${grossTotal}\n` +
+      `11. *Net Total Interest:* ${netTotal}\n\n` +
+      `Calculated via Family Interest Ledger`;
+
+    if (navigator.share) {
+      navigator.share({ title: `Interest Summary - ${selectedFirm}`, text: summaryText }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(summaryText).then(() => alert("Copied to clipboard!"));
     }
+  }
+
+  function shareFamilySummary() {
+    const selectedMember = document.getElementById('family-select').value;
+    if (!selectedMember) return;
+
+    let titleStr = (selectedMember === "Total (All members)")
+      ? "Portfolio Summary - Overall Total"
+      : `Portfolio Summary - ${selectedMember}`;
+
+    const summaryText = `📊 *${titleStr}*\n` +
+      `• Cheque Money Lent: ${document.getElementById('fam-cheque-lent').innerText}\n` +
+      `• Cash Money Lent: ${document.getElementById('fam-cash-lent').innerText}\n` +
+      `• Total Money Lent: ${document.getElementById('fam-total-lent').innerText}\n` +
+      `• Full Year Total Interest: ${document.getElementById('fam-fy-total').innerText}\n` +
+      `• Current FY Total Interest: ${document.getElementById('fam-cur-total').innerText}\n\n` +
+      `Calculated via Family Interest Ledger`;
+
+    if (navigator.share) {
+      navigator.share({ title: titleStr, text: summaryText }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(summaryText).then(() => alert("Copied to clipboard!"));
+    }
+  }
+
+  function printSummary() {
+    window.print();
+  }
+
+  // subtle live clock in header, cosmetic only
+  function tickClock(){
+    const el = document.getElementById('live-clock');
+    if(!el) return;
+    const now = new Date();
+    el.innerText = now.toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'});
+  }
+  tickClock();
+  setInterval(tickClock, 30000);
 </script>
 </body>
 </html>
