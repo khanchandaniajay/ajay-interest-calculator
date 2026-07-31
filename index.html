@@ -187,6 +187,11 @@
 
   /* mobile table -> stacked cards for family view */
   .table-responsive{overflow-x:auto;border-radius:var(--radius-sm);border:1px solid var(--line);margin-top:4px;}
+  .table-full-bleed{
+    width:100vw;position:relative;left:50%;right:50%;margin-left:-50vw;margin-right:-50vw;
+    padding-left:16px;padding-right:16px;box-sizing:border-box;
+  }
+  .table-full-bleed .table-responsive{border-radius:0;}
   table{width:100%;border-collapse:collapse;font-size:11.5px;min-width:620px;font-family:'JetBrains Mono',monospace;}
   th{background:var(--line-soft);color:var(--muted);padding:9px 8px;text-align:left;font-weight:600;font-family:'Inter',sans-serif;font-size:10.5px;text-transform:uppercase;letter-spacing:0.03em;}
   th.sortable-th{cursor:pointer;user-select:none;transition:color .15s,background .15s;}
@@ -216,16 +221,21 @@
     .card,.results-card{border:1px solid #ccc !important;background:#fff !important;}
 
     /* Force the itemized table to fit the printed page instead of clipping */
+    .table-full-bleed{width:auto !important;position:static !important;left:auto !important;margin:0 !important;padding:0 !important;}
     .table-responsive{overflow-x:visible !important;border:1px solid #ccc !important;}
     table{
-      min-width:0 !important;width:100% !important;table-layout:auto !important;
+      min-width:0 !important;width:100% !important;table-layout:fixed !important;
       font-size:7.5px !important;
     }
     th, td{
       white-space:nowrap !important;
       padding:3px 2px !important;color:#000 !important;
     }
-    td:first-child, th:first-child{white-space:normal !important;word-break:break-word !important;}
+    td:first-child, th:first-child{
+      white-space:normal !important;word-break:normal !important;overflow-wrap:break-word !important;
+    }
+    #all-firms-table td:first-child, #all-firms-table th:first-child{width:15% !important;}
+    #family-itemized-table td:first-child, #family-itemized-table th:first-child{width:17% !important;}
     th{background:#eee !important;color:#000 !important;}
     tfoot tr{background:#f3f3f3 !important;}
     .badge{border:1px solid #999;background:#fff !important;color:#000 !important;}
@@ -387,6 +397,7 @@
       </div>
 
       <div class="card-title" style="margin:18px 4px 8px;">Firm-wise Itemized Breakdown</div>
+      <div class="table-full-bleed">
       <div class="table-responsive">
         <table id="all-firms-table">
           <thead>
@@ -396,6 +407,7 @@
               <th class="sortable-th" data-key="amount" data-type="number" data-label="Amount Lent" onclick="sortAllFirmsTable('amount','number')">Amount Lent</th>
               <th class="sortable-th" data-key="rate" data-type="number" data-label="Monthly Rate" onclick="sortAllFirmsTable('rate','number')">Monthly Rate</th>
               <th class="sortable-th" data-key="fyInterest" data-type="number" data-label="Full Yr Interest" onclick="sortAllFirmsTable('fyInterest','number')">Full Yr Interest</th>
+              <th class="sortable-th" data-key="paymentFrequency" data-type="text" data-label="Payment Frequency" onclick="sortAllFirmsTable('paymentFrequency','text')">Payment Frequency</th>
               <th class="sortable-th" data-key="nextPayment" data-type="text" data-label="Next Payment" onclick="sortAllFirmsTable('nextPayment','text')">Next Payment</th>
               <th class="sortable-th" data-key="daysBefore" data-type="number" data-label="Days Before" onclick="sortAllFirmsTable('daysBefore','number')">Days Before</th>
               <th class="sortable-th" data-key="nextDueAmount" data-type="number" data-label="Next Due Amt" onclick="sortAllFirmsTable('nextDueAmount','number')">Next Due Amt</th>
@@ -404,6 +416,7 @@
           </thead>
           <tbody id="all-firms-table-body"></tbody>
         </table>
+      </div>
       </div>
 
       <div class="btn-row no-print">
@@ -483,6 +496,7 @@
       </div>
 
       <div class="card-title" style="margin:18px 4px 8px;">Lent Firms — Itemized Breakdown</div>
+      <div class="table-full-bleed">
       <div class="table-responsive">
         <table id="family-itemized-table">
           <thead>
@@ -500,6 +514,7 @@
           <tbody id="family-table-body"></tbody>
           <tfoot id="family-table-foot"></tfoot>
         </table>
+      </div>
       </div>
 
       <div class="btn-row no-print">
@@ -799,6 +814,7 @@
       let caRate = parseRatePercent(getVal(record, "Monthly IR (Cash)"));
       let combinedRateNum = Math.round((chRate + caRate) * 100) / 100;
       let nextPayDate = getVal(record, "Next payment date") || 'N/A';
+      let paymentFrequency = getVal(record, "Payment due Frequency") || 'N/A';
       let daysBeforeRaw = getVal(record, "Days before next payment");
       let daysBeforeNum = cleanNum(daysBeforeRaw);
       let daysBeforeBadge = daysBeforeRaw
@@ -813,6 +829,7 @@
         rate: combinedRateNum,
         rateLabel: combinedRateNum + '%',
         fyInterest: fyTotal,
+        paymentFrequency,
         nextPayment: nextPayDate,
         daysBefore: daysBeforeNum,
         daysBeforeBadge,
@@ -856,6 +873,7 @@
         <td>${formatINR(row.amount)}</td>
         <td>${row.rateLabel}</td>
         <td>${formatINR(row.fyInterest)}</td>
+        <td>${row.paymentFrequency}</td>
         <td>${row.nextPayment}</td>
         <td>${row.daysBeforeBadge}</td>
         <td>${formatINR(row.nextDueAmount)}</td>
