@@ -250,7 +250,25 @@
       white-space:normal !important;word-break:normal !important;overflow-wrap:break-word !important;
     }
     #all-firms-table td:first-child, #all-firms-table th:first-child{width:14% !important;}
-    #family-itemized-table td:first-child, #family-itemized-table th:first-child{width:16% !important;}
+    #family-itemized-table td:first-child, #family-itemized-table th:first-child{width:15% !important;}
+
+    /* Give each Family table column a width matched to its actual content, instead of splitting evenly */
+    #family-itemized-table th:nth-child(2), #family-itemized-table td:nth-child(2){width:8% !important;}
+    #family-itemized-table th:nth-child(3), #family-itemized-table td:nth-child(3){width:8% !important;}
+    #family-itemized-table th:nth-child(4), #family-itemized-table td:nth-child(4){width:9% !important;}
+    #family-itemized-table th:nth-child(5), #family-itemized-table td:nth-child(5){width:15% !important;}
+    #family-itemized-table th:nth-child(6), #family-itemized-table td:nth-child(6){width:20% !important;}
+    #family-itemized-table th:nth-child(7), #family-itemized-table td:nth-child(7){width:20% !important;}
+    #family-itemized-table th:nth-child(8), #family-itemized-table td:nth-child(8){width:5% !important;}
+
+    /* Safety net: these combined "X / Y / Z" columns wrap at the natural slash-spacing
+       instead of bleeding into the next cell if they still run short on room.
+       Individual numbers never break mid-number since the wrap only happens at spaces. */
+    #family-itemized-table td:nth-child(5),
+    #family-itemized-table td:nth-child(6),
+    #family-itemized-table td:nth-child(7){
+      white-space:normal !important;word-break:normal !important;overflow-wrap:normal !important;
+    }
     th{background:#eee !important;color:#000 !important;}
     tfoot tr{background:#f3f3f3 !important;}
     .badge{border:1px solid #999;background:#fff !important;color:#000 !important;}
