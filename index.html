@@ -647,6 +647,11 @@
       if (family) uniqueFamilyMembers.add(family);
     });
 
+    let allFirmsOption = document.createElement('option');
+    allFirmsOption.value = ALL_FIRMS_VALUE;
+    allFirmsOption.innerHTML = "📊 All Firms (Consolidated)";
+    firmSelect.appendChild(allFirmsOption);
+
     uniqueFirms.forEach(firm => {
       let option = document.createElement('option');
       option.value = firm;
@@ -654,10 +659,10 @@
       firmSelect.appendChild(option);
     });
 
-    let allFirmsOption = document.createElement('option');
-    allFirmsOption.value = ALL_FIRMS_VALUE;
-    allFirmsOption.innerHTML = "📊 All Firms (Consolidated)";
-    firmSelect.appendChild(allFirmsOption);
+    let totalOption = document.createElement('option');
+    totalOption.value = "Total (All members)";
+    totalOption.innerHTML = "Total (All members)";
+    familySelect.appendChild(totalOption);
 
     uniqueFamilyMembers.forEach(member => {
       let option = document.createElement('option');
@@ -665,11 +670,6 @@
       option.innerHTML = member;
       familySelect.appendChild(option);
     });
-
-    let totalOption = document.createElement('option');
-    totalOption.value = "Total (All members)";
-    totalOption.innerHTML = "Total (All members)";
-    familySelect.appendChild(totalOption);
   }
 
   function handlePartySelection() {
@@ -814,7 +814,7 @@
       let caRate = parseRatePercent(getVal(record, "Monthly IR (Cash)"));
       let combinedRateNum = Math.round((chRate + caRate) * 100) / 100;
       let nextPayDate = getVal(record, "Next payment date") || 'N/A';
-      let paymentFrequency = getVal(record, "Payment due Frequency") || 'N/A';
+      let paymentFrequency = getVal(record, "Interest Due Frequency") || 'N/A';
       let daysBeforeRaw = getVal(record, "Days before next payment");
       let daysBeforeNum = cleanNum(daysBeforeRaw);
       let daysBeforeBadge = daysBeforeRaw
