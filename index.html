@@ -146,6 +146,9 @@
   .fy-total-row{background:var(--mint-dim) !important;border-radius:8px;padding:10px 10px !important;margin-top:2px;}
   .fy-total-row .info-value{color:var(--mint);font-size:14px;}
 
+  .due-soon-row{background:var(--amber-dim) !important;border-radius:8px;padding:9px 10px !important;}
+  .due-soon-value{color:var(--amber) !important;font-weight:700;}
+
   .days-box{
     background:var(--amber-dim);border:1px solid rgba(240,180,41,0.35);color:var(--amber);
     padding:10px;border-radius:var(--radius-sm);text-align:center;font-family:'JetBrains Mono',monospace;
@@ -186,6 +189,8 @@
   .table-responsive{overflow-x:auto;border-radius:var(--radius-sm);border:1px solid var(--line);margin-top:4px;}
   table{width:100%;border-collapse:collapse;font-size:11.5px;min-width:620px;font-family:'JetBrains Mono',monospace;}
   th{background:var(--line-soft);color:var(--muted);padding:9px 8px;text-align:left;font-weight:600;font-family:'Inter',sans-serif;font-size:10.5px;text-transform:uppercase;letter-spacing:0.03em;}
+  th.sortable-th{cursor:pointer;user-select:none;transition:color .15s,background .15s;}
+  th.sortable-th:active{background:var(--card-hover);color:var(--mint);}
   td{padding:9px 8px;border-bottom:1px solid var(--line-soft);color:var(--text);}
   tr:last-child td{border-bottom:none;}
   tfoot tr{background:rgba(47,227,166,0.05);border-top:1px solid var(--mint-dim);}
@@ -209,6 +214,36 @@
     body{background:#fff;color:#000;}
     .no-print{display:none !important;}
     .card,.results-card{border:1px solid #ccc !important;background:#fff !important;}
+
+    /* Force the itemized table to fit the printed page instead of clipping */
+    .table-responsive{overflow-x:visible !important;border:1px solid #ccc !important;}
+    table{
+      min-width:0 !important;width:100% !important;table-layout:auto !important;
+      font-size:7.5px !important;
+    }
+    th, td{
+      white-space:nowrap !important;
+      padding:3px 2px !important;color:#000 !important;
+    }
+    td:first-child, th:first-child{white-space:normal !important;word-break:break-word !important;}
+    th{background:#eee !important;color:#000 !important;}
+    tfoot tr{background:#f3f3f3 !important;}
+    .badge{border:1px solid #999;background:#fff !important;color:#000 !important;}
+    .summary-grid-row, .info-row{color:#000 !important;}
+    .col-val, .info-value{color:#000 !important;}
+    .summary-grid-row.total-row-green, .fy-total-row, .rate-total-row{
+      background:#f0f0f0 !important;border:1px solid #ccc !important;
+    }
+    .summary-grid-row.total-row-green .col-label,
+    .summary-grid-row.total-row-green .col-val{color:#000 !important;}
+
+    /* Keep the portfolio summary narrow and centered so it doesn't stretch across landscape width */
+    #family-results-section > .card:first-child{
+      max-width:340px !important;margin:0 auto 14px !important;
+    }
+    #details-card{max-width:380px !important;margin:0 auto 14px !important;}
+
+    @page{size:landscape;margin:6mm;}
   }
 </style>
 </head>
@@ -270,6 +305,9 @@
 
       <div class="info-row"><span>Broker</span><span class="info-value" id="info-broker">-</span></div>
       <div class="info-row"><span>Start date (Current FY)</span><span class="info-value" id="info-fy-start">-</span></div>
+      <div class="info-row" id="info-next-payment-row"><span>Next Payment Date</span><span class="info-value" id="info-next-payment">-</span></div>
+      <div class="info-row" id="info-days-before-row"><span>Days Before Next Payment</span><span class="info-value" id="info-days-before">-</span></div>
+      <div class="info-row"><span>Next Due Amount</span><span class="info-value" id="info-next-due-amount">-</span></div>
       <div class="info-row"><span>Monthly Cheque Rate</span><span class="info-value" id="info-cheque-rate">-</span></div>
       <div class="info-row"><span>Monthly Cash Rate</span><span class="info-value" id="info-cash-rate">-</span></div>
       <div class="info-row rate-total-row"><span>Monthly Rate Total</span><span class="info-value" id="info-monthly-rate-total">-</span></div>
@@ -311,6 +349,67 @@
       <div id="days-display-wrapper" class="hidden">
         <div class="days-box" id="calculated-days-text">Number of Days: 0</div>
       </div>
+    </div>
+
+    <div id="all-firms-section" class="hidden fade-in">
+      <div class="card">
+        <div class="card-title">All Firms — Consolidated Summary</div>
+
+        <div class="summary-grid-row left-align">
+          <span class="col-label">No. of Firms Lent To</span>
+          <span class="col-val" id="af-firm-count">0</span>
+        </div>
+        <div class="summary-grid-row left-align">
+          <span class="col-label">Total Cheque Money Lent</span>
+          <span class="col-val" id="af-total-cheque">₹0</span>
+        </div>
+        <div class="summary-grid-row left-align">
+          <span class="col-label">Total Cash Money Lent</span>
+          <span class="col-val" id="af-total-cash">₹0</span>
+        </div>
+        <div class="summary-grid-row total-row-green">
+          <span class="col-label">Overall Total Money Lent</span>
+          <span class="col-val" id="af-total-lent">₹0</span>
+        </div>
+
+        <div class="summary-grid-row left-align" style="margin-top:6px;">
+          <span class="col-label">Annual Cheque Interest</span>
+          <span class="col-val" id="af-annual-cheque">₹0</span>
+        </div>
+        <div class="summary-grid-row left-align">
+          <span class="col-label">Annual Cash Interest</span>
+          <span class="col-val" id="af-annual-cash">₹0</span>
+        </div>
+        <div class="summary-grid-row total-row-green">
+          <span class="col-label">Annual Total Interest</span>
+          <span class="col-val" id="af-annual-total">₹0</span>
+        </div>
+      </div>
+
+      <div class="card-title" style="margin:18px 4px 8px;">Firm-wise Itemized Breakdown</div>
+      <div class="table-responsive">
+        <table id="all-firms-table">
+          <thead>
+            <tr>
+              <th class="sortable-th" data-key="firmName" data-type="text" data-label="Firm Name" onclick="sortAllFirmsTable('firmName','text')">Firm Name</th>
+              <th class="sortable-th" data-key="familyMember" data-type="text" data-label="Family Member" onclick="sortAllFirmsTable('familyMember','text')">Family Member</th>
+              <th class="sortable-th" data-key="amount" data-type="number" data-label="Amount Lent" onclick="sortAllFirmsTable('amount','number')">Amount Lent</th>
+              <th class="sortable-th" data-key="rate" data-type="number" data-label="Monthly Rate" onclick="sortAllFirmsTable('rate','number')">Monthly Rate</th>
+              <th class="sortable-th" data-key="fyInterest" data-type="number" data-label="Full Yr Interest" onclick="sortAllFirmsTable('fyInterest','number')">Full Yr Interest</th>
+              <th class="sortable-th" data-key="nextPayment" data-type="text" data-label="Next Payment" onclick="sortAllFirmsTable('nextPayment','text')">Next Payment</th>
+              <th class="sortable-th" data-key="daysBefore" data-type="number" data-label="Days Before" onclick="sortAllFirmsTable('daysBefore','number')">Days Before</th>
+              <th class="sortable-th" data-key="nextDueAmount" data-type="number" data-label="Next Due Amt" onclick="sortAllFirmsTable('nextDueAmount','number')">Next Due Amt</th>
+              <th class="sortable-th" data-key="broker" data-type="text" data-label="Broker" onclick="sortAllFirmsTable('broker','text')">Broker</th>
+            </tr>
+          </thead>
+          <tbody id="all-firms-table-body"></tbody>
+        </table>
+      </div>
+
+      <div class="btn-row no-print">
+        <button type="button" class="btn btn-print" style="flex:1;" onclick="printSummary()">Save / Print</button>
+      </div>
+      <button type="button" class="btn-clear no-print" onclick="resetCalculator()">Clear Everything</button>
     </div>
 
     <div id="results-section" class="results-card hidden fade-in">
@@ -385,17 +484,17 @@
 
       <div class="card-title" style="margin:18px 4px 8px;">Lent Firms — Itemized Breakdown</div>
       <div class="table-responsive">
-        <table>
+        <table id="family-itemized-table">
           <thead>
             <tr>
-              <th>Firm Name</th>
-              <th>Cheque Amt</th>
-              <th>Cash Amt</th>
-              <th>Total Amt</th>
+              <th class="sortable-th" data-key="firmName" data-type="text" data-label="Firm Name" onclick="sortFamilyTable('firmName','text')">Firm Name</th>
+              <th class="sortable-th" data-key="chequeAmt" data-type="number" data-label="Cheque Amt" onclick="sortFamilyTable('chequeAmt','number')">Cheque Amt</th>
+              <th class="sortable-th" data-key="cashAmt" data-type="number" data-label="Cash Amt" onclick="sortFamilyTable('cashAmt','number')">Cash Amt</th>
+              <th class="sortable-th" data-key="totalAmt" data-type="number" data-label="Total Amt" onclick="sortFamilyTable('totalAmt','number')">Total Amt</th>
               <th>Monthly Rates (Cheq / Cash / Total)</th>
-              <th>Full FY Int (Cheq / Cash / Total)</th>
-              <th>Curr FY Int (Cheq / Cash / Total)</th>
-              <th>Status</th>
+              <th class="sortable-th" data-key="fyTotal" data-type="number" data-label="Full FY Int (Cheq / Cash / Total)" onclick="sortFamilyTable('fyTotal','number')">Full FY Int (Cheq / Cash / Total)</th>
+              <th class="sortable-th" data-key="curTotal" data-type="number" data-label="Curr FY Int (Cheq / Cash / Total)" onclick="sortFamilyTable('curTotal','number')">Curr FY Int (Cheq / Cash / Total)</th>
+              <th class="sortable-th" data-key="status" data-type="text" data-label="Status" onclick="sortFamilyTable('status','text')">Status</th>
             </tr>
           </thead>
           <tbody id="family-table-body"></tbody>
@@ -415,7 +514,13 @@
 <script>
   const SHEET_DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTE8Ga_ayS7dMQ3novYHY9WtJFqaIPIqopKjz6s9qT5wwsWfPGXyBhe0tuEn4eKkJz1DjK1gVbYXvgN/pub?gid=81907815&single=true&output=csv&_t=" + new Date().getTime();
 
+  const ALL_FIRMS_VALUE = "All Firms (Consolidated)";
+
   let businessRecords = [];
+  let familyRows = [];
+  let familySort = { key: 'totalAmt', dir: 'desc' };
+  let allFirmsRows = [];
+  let allFirmsSort = { key: 'amount', dir: 'desc' };
 
   window.onload = function() {
     Papa.parse(SHEET_DATA_URL, {
@@ -473,6 +578,34 @@
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(num);
   }
 
+  function genericSort(rows, key, type, dir) {
+    return rows.slice().sort((a, b) => {
+      let av = a[key], bv = b[key];
+      if (type === 'text') {
+        av = (av || '').toString().toLowerCase();
+        bv = (bv || '').toString().toLowerCase();
+        if (av < bv) return dir === 'asc' ? -1 : 1;
+        if (av > bv) return dir === 'asc' ? 1 : -1;
+        return 0;
+      } else {
+        av = Number(av) || 0;
+        bv = Number(bv) || 0;
+        return dir === 'asc' ? av - bv : bv - av;
+      }
+    });
+  }
+
+  function updateSortIndicators(tableId, sortState) {
+    document.querySelectorAll('#' + tableId + ' thead th[data-key]').forEach(th => {
+      let label = th.getAttribute('data-label');
+      if (th.getAttribute('data-key') === sortState.key) {
+        th.textContent = label + (sortState.dir === 'asc' ? ' ▲' : ' ▼');
+      } else {
+        th.textContent = label;
+      }
+    });
+  }
+
   function switchMode(mode) {
     document.getElementById('card-mode-firm').classList.toggle('selected', mode === 'firm');
     document.getElementById('card-mode-family').classList.toggle('selected', mode === 'family');
@@ -506,6 +639,11 @@
       firmSelect.appendChild(option);
     });
 
+    let allFirmsOption = document.createElement('option');
+    allFirmsOption.value = ALL_FIRMS_VALUE;
+    allFirmsOption.innerHTML = "📊 All Firms (Consolidated)";
+    firmSelect.appendChild(allFirmsOption);
+
     uniqueFamilyMembers.forEach(member => {
       let option = document.createElement('option');
       option.value = member;
@@ -522,6 +660,13 @@
   function handlePartySelection() {
     const selectedFirm = document.getElementById('party-select').value;
     if (!selectedFirm) { resetCalculator(); return; }
+
+    if (selectedFirm === ALL_FIRMS_VALUE) {
+      renderAllFirmsView();
+      return;
+    }
+
+    document.getElementById('all-firms-section').classList.add('hidden');
 
     const matchingRows = businessRecords.filter(r => getVal(r, "Money Lent To") === selectedFirm);
     if (matchingRows.length === 0) return;
@@ -573,6 +718,31 @@
     document.getElementById('info-full-cash').innerText = formatINR(fullCashTotal);
     document.getElementById('info-full-total').innerText = formatINR(fullGrandTotal);
 
+    let nextPaymentDate = getVal(firstRow, "Next payment date") || 'N/A';
+    let daysBeforeRaw = getVal(firstRow, "Days before next payment");
+    let daysBeforeNum = cleanNum(daysBeforeRaw);
+    let nextDueAmount = cleanNum(getVal(firstRow, "Next due amount"));
+
+    document.getElementById('info-next-payment').innerText = nextPaymentDate;
+    document.getElementById('info-next-due-amount').innerText = getVal(firstRow, "Next due amount") ? formatINR(nextDueAmount) : 'N/A';
+
+    const daysBeforeEl = document.getElementById('info-days-before');
+    const daysBeforeRowEl = document.getElementById('info-days-before-row');
+    if (daysBeforeRaw) {
+      daysBeforeEl.innerText = daysBeforeRaw + ' days';
+      if (daysBeforeNum <= 7 && daysBeforeNum >= 0) {
+        daysBeforeRowEl.classList.add('due-soon-row');
+        daysBeforeEl.classList.add('due-soon-value');
+      } else {
+        daysBeforeRowEl.classList.remove('due-soon-row');
+        daysBeforeEl.classList.remove('due-soon-value');
+      }
+    } else {
+      daysBeforeEl.innerText = 'N/A';
+      daysBeforeRowEl.classList.remove('due-soon-row');
+      daysBeforeEl.classList.remove('due-soon-value');
+    }
+
     document.getElementById('details-card').classList.remove('hidden');
     updateCentering();
     document.getElementById('quarter-select').value = "";
@@ -591,6 +761,119 @@
       document.getElementById('standard-date-section').classList.remove('hidden');
       document.getElementById('mitesh-section').classList.add('hidden');
     }
+  }
+
+  function renderAllFirmsView() {
+    document.getElementById('details-card').classList.add('hidden');
+    document.getElementById('mitesh-section').classList.add('hidden');
+    document.getElementById('standard-date-section').classList.add('hidden');
+    document.getElementById('results-section').classList.add('hidden');
+
+    let uniqueFirmNames = new Set();
+    let totalCheque = 0, totalCash = 0, totalLent = 0;
+    let annualCheque = 0, annualCash = 0, annualTotal = 0;
+
+    allFirmsRows = [];
+
+    businessRecords.forEach(record => {
+      let firmName = getVal(record, "Money Lent To");
+      if (firmName) uniqueFirmNames.add(firmName);
+
+      let principal = cleanNum(getVal(record, "Principal Amount"));
+      let mode = getVal(record, "CASH / CHEQUE").toLowerCase();
+      let deployed = getVal(record, "Currently Deployed ?").toLowerCase();
+
+      if (mode === 'cash') { totalCash += principal; } else { totalCheque += principal; }
+      totalLent += principal;
+
+      let fyCheque = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cheque)"));
+      let fyCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cash)"));
+      let fyTotal = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Total)"));
+
+      annualCheque += fyCheque;
+      annualCash += fyCash;
+      annualTotal += fyTotal;
+
+      let familyMember = getVal(record, "Family Member") || "Unknown";
+      let chRate = parseRatePercent(getVal(record, "Monthly IR (Cheque)"));
+      let caRate = parseRatePercent(getVal(record, "Monthly IR (Cash)"));
+      let combinedRateNum = Math.round((chRate + caRate) * 100) / 100;
+      let nextPayDate = getVal(record, "Next payment date") || 'N/A';
+      let daysBeforeRaw = getVal(record, "Days before next payment");
+      let daysBeforeNum = cleanNum(daysBeforeRaw);
+      let daysBeforeBadge = daysBeforeRaw
+        ? ((daysBeforeNum <= 7 && daysBeforeNum >= 0) ? `<span class="badge badge-orange">${daysBeforeRaw}</span>` : daysBeforeRaw)
+        : 'N/A';
+      let nextDueAmount = cleanNum(getVal(record, "Next due amount"));
+      let broker = getVal(record, "Broker") || 'N/A';
+
+      allFirmsRows.push({
+        firmName, familyMember,
+        amount: principal,
+        rate: combinedRateNum,
+        rateLabel: combinedRateNum + '%',
+        fyInterest: fyTotal,
+        nextPayment: nextPayDate,
+        daysBefore: daysBeforeNum,
+        daysBeforeBadge,
+        nextDueAmount,
+        broker
+      });
+    });
+
+    document.getElementById('af-firm-count').innerText = uniqueFirmNames.size;
+    document.getElementById('af-total-cheque').innerText = formatINR(totalCheque);
+    document.getElementById('af-total-cash').innerText = formatINR(totalCash);
+    document.getElementById('af-total-lent').innerText = formatINR(totalLent);
+    document.getElementById('af-annual-cheque').innerText = formatINR(annualCheque);
+    document.getElementById('af-annual-cash').innerText = formatINR(annualCash);
+    document.getElementById('af-annual-total').innerText = formatINR(annualTotal);
+
+    allFirmsSort = { key: 'amount', dir: 'desc' };
+    renderAllFirmsTable();
+
+    document.getElementById('all-firms-section').classList.remove('hidden');
+    updateCentering();
+
+    setTimeout(() => {
+      document.getElementById('party-select').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+  }
+
+  function renderAllFirmsTable() {
+    const thEl = document.querySelector('#all-firms-table thead th[data-key="' + allFirmsSort.key + '"]');
+    const type = thEl ? thEl.getAttribute('data-type') : 'number';
+    const sorted = genericSort(allFirmsRows, allFirmsSort.key, type, allFirmsSort.dir);
+
+    const tbody = document.getElementById('all-firms-table-body');
+    tbody.innerHTML = "";
+
+    sorted.forEach(row => {
+      let tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="font-weight:700;font-family:'Inter',sans-serif;">${row.firmName}</td>
+        <td>${row.familyMember}</td>
+        <td>${formatINR(row.amount)}</td>
+        <td>${row.rateLabel}</td>
+        <td>${formatINR(row.fyInterest)}</td>
+        <td>${row.nextPayment}</td>
+        <td>${row.daysBeforeBadge}</td>
+        <td>${formatINR(row.nextDueAmount)}</td>
+        <td>${row.broker}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    updateSortIndicators('all-firms-table', allFirmsSort);
+  }
+
+  function sortAllFirmsTable(key, type) {
+    if (allFirmsSort.key === key) {
+      allFirmsSort.dir = allFirmsSort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      allFirmsSort = { key, dir: type === 'text' ? 'asc' : 'desc' };
+    }
+    renderAllFirmsTable();
   }
 
   function handleStartDateChange() {
@@ -689,8 +972,7 @@
     let totalFullCheque = 0, totalFullCash = 0, totalFullYearSum = 0;
     let totalCurCheque = 0, totalCurCash = 0, totalCurYearSum = 0;
 
-    const tbody = document.getElementById('family-table-body');
-    tbody.innerHTML = "";
+    familyRows = [];
 
     if (selectedMember === "Total (All members)") {
       let firmGroupMap = {};
@@ -767,18 +1049,19 @@
           statusBadge += ` <span class="badge badge-orange">Maybe</span>`;
         }
 
-        let tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td style="font-weight:700;font-family:'Inter',sans-serif;">${group.firmName}</td>
-          <td>${formatINR(group.chequeAmt)}</td>
-          <td>${formatINR(group.cashAmt)}</td>
-          <td style="font-weight:700;">${formatINR(group.totalAmt)}</td>
-          <td>${group.mChequeRate} / ${group.mCashRate} / <b>${group.mTotalRate}</b></td>
-          <td>${formatINR(group.fyCheque)} / ${formatINR(group.fyCash)} / <b>${formatINR(group.fyTotal)}</b></td>
-          <td>${formatINR(group.curCheque)} / ${formatINR(group.curCash)} / <b>${formatINR(group.curTotal)}</b></td>
-          <td>${statusBadge}</td>
-        `;
-        tbody.appendChild(tr);
+        familyRows.push({
+          firmName: group.firmName,
+          chequeAmt: group.chequeAmt,
+          cashAmt: group.cashAmt,
+          totalAmt: group.totalAmt,
+          rateLabel: `${group.mChequeRate} / ${group.mCashRate} / <b>${group.mTotalRate}</b>`,
+          fyTotal: group.fyTotal,
+          fyLabel: `${formatINR(group.fyCheque)} / ${formatINR(group.fyCash)} / <b>${formatINR(group.fyTotal)}</b>`,
+          curTotal: group.curTotal,
+          curLabel: `${formatINR(group.curCheque)} / ${formatINR(group.curCash)} / <b>${formatINR(group.curTotal)}</b>`,
+          status: aggStatus,
+          statusBadge
+        });
       });
 
     } else {
@@ -827,18 +1110,19 @@
             statusBadge += ` <span class="badge badge-orange">Maybe</span>`;
           }
 
-          let tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td style="font-weight:700;font-family:'Inter',sans-serif;">${firmName}</td>
-            <td>${formatINR(chequeAmt)}</td>
-            <td>${formatINR(cashAmt)}</td>
-            <td style="font-weight:700;">${formatINR(totalAmt)}</td>
-            <td>${mChequeRate} / ${mCashRate} / <b>${mTotalRate}</b></td>
-            <td>${formatINR(fyCheque)} / ${formatINR(fyCash)} / <b>${formatINR(fyTotal)}</b></td>
-            <td>${formatINR(curCheque)} / ${formatINR(curCash)} / <b>${formatINR(curTotal)}</b></td>
-            <td>${statusBadge}</td>
-          `;
-          tbody.appendChild(tr);
+          familyRows.push({
+            firmName,
+            chequeAmt,
+            cashAmt,
+            totalAmt,
+            rateLabel: `${mChequeRate} / ${mCashRate} / <b>${mTotalRate}</b>`,
+            fyTotal,
+            fyLabel: `${formatINR(fyCheque)} / ${formatINR(fyCash)} / <b>${formatINR(fyTotal)}</b>`,
+            curTotal,
+            curLabel: `${formatINR(curCheque)} / ${formatINR(curCash)} / <b>${formatINR(curTotal)}</b>`,
+            status: pStatus,
+            statusBadge
+          });
         }
       });
     }
@@ -869,12 +1153,50 @@
       </tr>
     `;
 
+    familySort = { key: 'totalAmt', dir: 'desc' };
+    renderFamilyTable();
+
     document.getElementById('family-results-section').classList.remove('hidden');
     updateCentering();
 
     setTimeout(() => {
       document.getElementById('family-select').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 150);
+  }
+
+  function renderFamilyTable() {
+    const thEl = document.querySelector('#family-itemized-table thead th[data-key="' + familySort.key + '"]');
+    const type = thEl ? thEl.getAttribute('data-type') : 'number';
+    const sorted = genericSort(familyRows, familySort.key, type, familySort.dir);
+
+    const tbody = document.getElementById('family-table-body');
+    tbody.innerHTML = "";
+
+    sorted.forEach(row => {
+      let tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="font-weight:700;font-family:'Inter',sans-serif;">${row.firmName}</td>
+        <td>${formatINR(row.chequeAmt)}</td>
+        <td>${formatINR(row.cashAmt)}</td>
+        <td style="font-weight:700;">${formatINR(row.totalAmt)}</td>
+        <td>${row.rateLabel}</td>
+        <td>${row.fyLabel}</td>
+        <td>${row.curLabel}</td>
+        <td>${row.statusBadge}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    updateSortIndicators('family-itemized-table', familySort);
+  }
+
+  function sortFamilyTable(key, type) {
+    if (familySort.key === key) {
+      familySort.dir = familySort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      familySort = { key, dir: type === 'text' ? 'asc' : 'desc' };
+    }
+    renderFamilyTable();
   }
 
   function resetCalculator() {
@@ -888,6 +1210,7 @@
     document.getElementById('mitesh-section').classList.add('hidden');
     document.getElementById('standard-date-section').classList.add('hidden');
     document.getElementById('results-section').classList.add('hidden');
+    document.getElementById('all-firms-section').classList.add('hidden');
     document.getElementById('family-results-section').classList.add('hidden');
     updateCentering();
 
@@ -985,7 +1308,8 @@
   function updateCentering(){
     const detailsShown = !document.getElementById('details-card').classList.contains('hidden');
     const familyShown = !document.getElementById('family-results-section').classList.contains('hidden');
-    document.body.classList.toggle('center-content', !detailsShown && !familyShown);
+    const allFirmsShown = !document.getElementById('all-firms-section').classList.contains('hidden');
+    document.body.classList.toggle('center-content', !detailsShown && !familyShown && !allFirmsShown);
   }
 
   // subtle live clock in header, cosmetic only
