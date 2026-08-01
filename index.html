@@ -987,10 +987,10 @@
       const tdsField = getVal(row, "Does Party Deduct TDS").toLowerCase();
       const isTdsEnabled = (tdsField === 'yes' || tdsField === 'y' || tdsField === '1');
 
-      let chequeGross = (mode === 'cash') ? 0 : (principalAmount * chequeMonthlyRate / 30 * finalDays);
+      let chequeGross = principalAmount * chequeMonthlyRate / 30 * finalDays;
       let chequeTds = isTdsEnabled ? (chequeGross * 0.10) : 0;
       let chequeNet = chequeGross - chequeTds;
-      let cashInt = (mode === 'cheque') ? 0 : (principalAmount * cashMonthlyRate / 30 * finalDays);
+      let cashInt = principalAmount * cashMonthlyRate / 30 * finalDays;
 
       totalChequeGross += chequeGross;
       totalChequeTds += chequeTds;
