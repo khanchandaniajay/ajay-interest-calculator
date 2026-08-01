@@ -113,6 +113,14 @@
   select:focus, input:focus{outline:none;border-color:var(--blue);}
   input[type="date"]{background-image:none;color-scheme:dark;}
 
+  .combo-search{
+    width:100%;padding:12px 14px;background:var(--line-soft);border:1px solid var(--line);
+    border-radius:var(--radius-sm);color:var(--text);font-size:14px;font-family:'Inter',sans-serif;
+    margin-bottom:8px;background-image:url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237C8798' stroke-width='2'%3e%3ccircle cx='11' cy='11' r='7'/%3e%3cpath d='M21 21l-4.3-4.3'/%3e%3c/svg%3e");
+    background-repeat:no-repeat;background-position:14px center;background-size:15px;padding-left:38px;
+  }
+  .combo-search::placeholder{color:var(--muted-2);}
+
   .hidden{display:none !important;}
 
   .fade-in{animation:fadeSlide .32s cubic-bezier(.16,1,.3,1) both;}
@@ -328,6 +336,7 @@
   <div id="firm-view-container" class="hidden">
     <div class="field no-print">
       <label for="party-select">Select Firm</label>
+      <input type="text" id="firm-search" class="combo-search" placeholder="Type to search (e.g. kh)…" oninput="filterFirmDropdown()" autocomplete="off">
       <select id="party-select" onchange="handlePartySelection()">
         <option value="">-- Loading Firms... --</option>
       </select>
@@ -479,6 +488,7 @@
   <div id="family-view-container" class="hidden">
     <div class="field no-print">
       <label for="family-select">Select Family Member</label>
+      <input type="text" id="family-search" class="combo-search" placeholder="Type to search…" oninput="filterFamilyDropdown()" autocomplete="off">
       <select id="family-select" onchange="handleFamilySelection()">
         <option value="">-- Choose Member --</option>
       </select>
@@ -569,6 +579,8 @@
   let familySort = { key: 'totalAmt', dir: 'desc' };
   let allFirmsRows = [];
   let allFirmsSort = { key: 'amount', dir: 'desc' };
+  let sortedFirmNames = [];
+  let sortedFamilyMembers = [];
 
   window.onload = function() {
     Papa.parse(SHEET_DATA_URL, {
@@ -663,12 +675,6 @@
   }
 
   function initDropdowns() {
-    const firmSelect = document.getElementById('party-select');
-    firmSelect.innerHTML = '<option value="">-- Choose a Firm --</option>';
-
-    const familySelect = document.getElementById('family-select');
-    familySelect.innerHTML = '<option value="">-- Choose Member --</option>';
-
     let uniqueFirms = new Set();
     let uniqueFamilyMembers = new Set();
 
@@ -680,29 +686,73 @@
       if (family) uniqueFamilyMembers.add(family);
     });
 
+    // Alphabetical, case-insensitive sort (e.g. "amar" and "Amar" sort together)
+    sortedFirmNames = [...uniqueFirms].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    sortedFamilyMembers = [...uniqueFamilyMembers].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+    renderFirmOptions(sortedFirmNames);
+    renderFamilyOptions(sortedFamilyMembers);
+  }
+
+  function renderFirmOptions(list) {
+    const firmSelect = document.getElementById('party-select');
+    const previousValue = firmSelect.value;
+    firmSelect.innerHTML = '<option value="">-- Choose a Firm --</option>';
+
     let allFirmsOption = document.createElement('option');
     allFirmsOption.value = ALL_FIRMS_VALUE;
     allFirmsOption.innerHTML = "📊 All Firms (Consolidated)";
     firmSelect.appendChild(allFirmsOption);
 
-    uniqueFirms.forEach(firm => {
+    list.forEach(firm => {
       let option = document.createElement('option');
       option.value = firm;
       option.innerHTML = firm;
       firmSelect.appendChild(option);
     });
 
+    // Keep the current selection visible if it still matches the filter
+    if (list.includes(previousValue) || previousValue === ALL_FIRMS_VALUE) {
+      firmSelect.value = previousValue;
+    }
+  }
+
+  function renderFamilyOptions(list) {
+    const familySelect = document.getElementById('family-select');
+    const previousValue = familySelect.value;
+    familySelect.innerHTML = '<option value="">-- Choose Member --</option>';
+
     let totalOption = document.createElement('option');
     totalOption.value = "Total (All members)";
     totalOption.innerHTML = "Total (All members)";
     familySelect.appendChild(totalOption);
 
-    uniqueFamilyMembers.forEach(member => {
+    list.forEach(member => {
       let option = document.createElement('option');
       option.value = member;
       option.innerHTML = member;
       familySelect.appendChild(option);
     });
+
+    if (list.includes(previousValue) || previousValue === "Total (All members)") {
+      familySelect.value = previousValue;
+    }
+  }
+
+  function filterFirmDropdown() {
+    const query = document.getElementById('firm-search').value.trim().toLowerCase();
+    const filtered = query
+      ? sortedFirmNames.filter(name => name.toLowerCase().startsWith(query))
+      : sortedFirmNames;
+    renderFirmOptions(filtered);
+  }
+
+  function filterFamilyDropdown() {
+    const query = document.getElementById('family-search').value.trim().toLowerCase();
+    const filtered = query
+      ? sortedFamilyMembers.filter(name => name.toLowerCase().startsWith(query))
+      : sortedFamilyMembers;
+    renderFamilyOptions(filtered);
   }
 
   function handlePartySelection() {
@@ -1251,6 +1301,10 @@
   }
 
   function resetCalculator() {
+    document.getElementById('firm-search').value = "";
+    document.getElementById('family-search').value = "";
+    renderFirmOptions(sortedFirmNames);
+    renderFamilyOptions(sortedFamilyMembers);
     document.getElementById('party-select').value = "";
     document.getElementById('family-select').value = "";
     document.getElementById('quarter-select').value = "";
