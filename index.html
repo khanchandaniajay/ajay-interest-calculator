@@ -429,26 +429,30 @@
           <span class="col-label">No. of Firms Lent To</span>
           <span class="col-val" id="af-firm-count">0</span>
         </div>
-        <div class="summary-grid-row left-align">
+        <div class="summary-grid-row-3col">
           <span class="col-label">Total Cheque Money Lent</span>
           <span class="col-val" id="af-total-cheque">₹0</span>
+          <span class="col-pct" id="af-total-cheque-pct">0%</span>
         </div>
-        <div class="summary-grid-row left-align">
+        <div class="summary-grid-row-3col">
           <span class="col-label">Total Cash Money Lent</span>
           <span class="col-val" id="af-total-cash">₹0</span>
+          <span class="col-pct" id="af-total-cash-pct">0%</span>
         </div>
         <div class="summary-grid-row total-row-green">
           <span class="col-label">Overall Total Money Lent</span>
           <span class="col-val" id="af-total-lent">₹0</span>
         </div>
 
-        <div class="summary-grid-row left-align" style="margin-top:6px;">
+        <div class="summary-grid-row-3col" style="margin-top:6px;">
           <span class="col-label">Annual Cheque Interest</span>
           <span class="col-val" id="af-annual-cheque">₹0</span>
+          <span class="col-pct" id="af-annual-cheque-pct">0%</span>
         </div>
-        <div class="summary-grid-row left-align">
+        <div class="summary-grid-row-3col">
           <span class="col-label">Annual Cash Interest</span>
           <span class="col-val" id="af-annual-cash">₹0</span>
+          <span class="col-pct" id="af-annual-cash-pct">0%</span>
         </div>
         <div class="summary-grid-row total-row-green">
           <span class="col-label">Annual Total Interest</span>
@@ -997,9 +1001,15 @@
     document.getElementById('af-total-cheque').innerText = formatINR(totalCheque);
     document.getElementById('af-total-cash').innerText = formatINR(totalCash);
     document.getElementById('af-total-lent').innerText = formatINR(totalLent);
+    document.getElementById('af-total-cheque-pct').innerText = (totalLent > 0 ? (totalCheque / totalLent * 100) : 0).toFixed(1) + '%';
+    document.getElementById('af-total-cash-pct').innerText = (totalLent > 0 ? (totalCash / totalLent * 100) : 0).toFixed(1) + '%';
+
     document.getElementById('af-annual-cheque').innerText = formatINR(annualCheque);
     document.getElementById('af-annual-cash').innerText = formatINR(annualCash);
     document.getElementById('af-annual-total').innerText = formatINR(annualTotal);
+    document.getElementById('af-annual-cheque-pct').innerText = (annualTotal > 0 ? (annualCheque / annualTotal * 100) : 0).toFixed(1) + '%';
+    document.getElementById('af-annual-cash-pct').innerText = (annualTotal > 0 ? (annualCash / annualTotal * 100) : 0).toFixed(1) + '%';
+
     document.getElementById('af-annual-tds').innerText = formatINR(annualTds);
     let blendedTdsPct = annualCheque > 0 ? (annualTds / annualCheque * 100) : 0;
     document.getElementById('af-blended-tds').innerText = blendedTdsPct.toFixed(2) + '%';
