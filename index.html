@@ -445,6 +445,28 @@
           <span class="col-label">Blended TDS %</span>
           <span class="col-val" id="af-blended-tds">0%</span>
         </div>
+
+        <div class="summary-grid-row left-align" style="margin-top:6px;">
+          <span class="col-label">Cheque with TDS</span>
+          <span class="col-val" id="af-cheque-with-tds">₹0</span>
+        </div>
+        <div class="summary-grid-row left-align">
+          <span class="col-label">Cheque without TDS</span>
+          <span class="col-val" id="af-cheque-without-tds">₹0</span>
+        </div>
+        <div class="summary-grid-row total-row-green">
+          <span class="col-label">Cheque Total</span>
+          <span class="col-val" id="af-cheque-total">₹0</span>
+        </div>
+
+        <div class="card-title" style="margin:16px 0 6px;">Broker-wise Principal</div>
+        <div id="af-broker-breakdown"></div>
+
+        <div class="card-title" style="margin:16px 0 6px;">Interest Due Frequency-wise Principal</div>
+        <div id="af-frequency-breakdown"></div>
+
+        <div class="card-title" style="margin:16px 0 6px;">Interest Paid Status-wise Principal</div>
+        <div id="af-status-breakdown"></div>
       </div>
 
       <div class="card-title" style="margin:18px 4px 8px;">Firm-wise Itemized Breakdown</div>
@@ -879,6 +901,8 @@
     let uniqueFirmNames = new Set();
     let totalCheque = 0, totalCash = 0, totalLent = 0;
     let annualCheque = 0, annualCash = 0, annualTotal = 0, annualTds = 0;
+    let chequeWithTds = 0, chequeWithoutTds = 0;
+    let brokerMap = {}, frequencyMap = {}, statusMap = {};
 
     allFirmsRows = [];
 
@@ -905,6 +929,19 @@
       annualCash += fyCash;
       annualTotal += fyTotal;
       annualTds += fyTds;
+
+      if (mode === 'cheque') {
+        if (isTdsEnabled) { chequeWithTds += principal; } else { chequeWithoutTds += principal; }
+      }
+
+      let brokerKey = getVal(record, "Broker") || 'N/A';
+      brokerMap[brokerKey] = (brokerMap[brokerKey] || 0) + principal;
+
+      let frequencyKey = getVal(record, "Interest Due Frequency") || 'N/A';
+      frequencyMap[frequencyKey] = (frequencyMap[frequencyKey] || 0) + principal;
+
+      let statusKey = getVal(record, "Latest Due Interest Paid Status") || 'N/A';
+      statusMap[statusKey] = (statusMap[statusKey] || 0) + principal;
 
       let familyMember = getVal(record, "Family Member") || "Unknown";
       let chRate = parseRatePercent(getVal(record, "Monthly IR (Cheque)"));
@@ -946,6 +983,14 @@
     let blendedTdsPct = annualCheque > 0 ? (annualTds / annualCheque * 100) : 0;
     document.getElementById('af-blended-tds').innerText = blendedTdsPct.toFixed(2) + '%';
 
+    document.getElementById('af-cheque-with-tds').innerText = formatINR(chequeWithTds);
+    document.getElementById('af-cheque-without-tds').innerText = formatINR(chequeWithoutTds);
+    document.getElementById('af-cheque-total').innerText = formatINR(chequeWithTds + chequeWithoutTds);
+
+    renderGroupBreakdown('af-broker-breakdown', brokerMap);
+    renderGroupBreakdown('af-frequency-breakdown', frequencyMap);
+    renderGroupBreakdown('af-status-breakdown', statusMap);
+
     allFirmsSort = { key: 'amount', dir: 'desc' };
     renderAllFirmsTable();
 
@@ -955,6 +1000,20 @@
     setTimeout(() => {
       document.getElementById('party-select').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 150);
+  }
+
+  function renderGroupBreakdown(containerId, dataMap) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = "";
+
+    const entries = Object.entries(dataMap).sort((a, b) => b[1] - a[1]);
+
+    entries.forEach(([label, amount]) => {
+      let row = document.createElement('div');
+      row.className = 'summary-grid-row left-align';
+      row.innerHTML = `<span class="col-label">${label}</span><span class="col-val">${formatINR(amount)}</span>`;
+      container.appendChild(row);
+    });
   }
 
   function renderAllFirmsTable() {
