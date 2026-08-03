@@ -223,6 +223,17 @@
   .summary-grid-row.total-row-green .col-label{text-align:right;font-weight:700;color:var(--mint);padding-right:10px;font-family:'Sora',sans-serif;font-size:12px;}
   .summary-grid-row.total-row-green .col-val{text-align:right;font-weight:700;color:var(--mint);font-family:'JetBrains Mono',monospace;font-size:14px;}
 
+  .summary-grid-row-3col{display:grid;grid-template-columns:42% 36% 22%;align-items:center;padding:8px 2px;font-size:13px;border-bottom:1px solid var(--line-soft);}
+  .summary-grid-row-3col .col-label{color:var(--muted);}
+  .summary-grid-row-3col .col-val{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--text);text-align:right;}
+  .summary-grid-row-3col .col-pct{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--muted);text-align:right;font-size:11.5px;}
+  .summary-grid-row-3col.total-row-green{
+    background:var(--mint-dim);border-radius:var(--radius-sm);padding:10px 12px;margin:6px 0 14px;border-bottom:none;
+  }
+  .summary-grid-row-3col.total-row-green .col-label{font-weight:700;color:var(--mint);font-family:'Sora',sans-serif;font-size:12px;}
+  .summary-grid-row-3col.total-row-green .col-val{font-weight:700;color:var(--mint);font-size:14px;}
+  .summary-grid-row-3col.total-row-green .col-pct{font-weight:700;color:var(--mint);font-size:12px;}
+
   @media print{
     body{
       background:#fff;color:#000;
@@ -287,6 +298,13 @@
     }
     .summary-grid-row.total-row-green .col-label,
     .summary-grid-row.total-row-green .col-val{color:#000 !important;}
+
+    .summary-grid-row-3col{color:#000 !important;}
+    .summary-grid-row-3col .col-val, .summary-grid-row-3col .col-pct{color:#000 !important;}
+    .summary-grid-row-3col.total-row-green{background:#f0f0f0 !important;border:1px solid #ccc !important;}
+    .summary-grid-row-3col.total-row-green .col-label,
+    .summary-grid-row-3col.total-row-green .col-val,
+    .summary-grid-row-3col.total-row-green .col-pct{color:#000 !important;}
 
     /* Keep the portfolio summary card readable-width but not stretched full-bleed like the tables */
     #family-results-section > .card:first-child{
@@ -446,17 +464,20 @@
           <span class="col-val" id="af-blended-tds">0%</span>
         </div>
 
-        <div class="summary-grid-row left-align" style="margin-top:6px;">
+        <div class="summary-grid-row-3col" style="margin-top:6px;">
           <span class="col-label">Cheque with TDS</span>
           <span class="col-val" id="af-cheque-with-tds">₹0</span>
+          <span class="col-pct" id="af-cheque-with-tds-pct">0%</span>
         </div>
-        <div class="summary-grid-row left-align">
+        <div class="summary-grid-row-3col">
           <span class="col-label">Cheque without TDS</span>
           <span class="col-val" id="af-cheque-without-tds">₹0</span>
+          <span class="col-pct" id="af-cheque-without-tds-pct">0%</span>
         </div>
-        <div class="summary-grid-row total-row-green">
+        <div class="summary-grid-row-3col total-row-green">
           <span class="col-label">Cheque Total</span>
           <span class="col-val" id="af-cheque-total">₹0</span>
+          <span class="col-pct">100%</span>
         </div>
 
         <div class="card-title" style="margin:16px 0 6px;">Broker-wise Principal</div>
@@ -985,7 +1006,10 @@
 
     document.getElementById('af-cheque-with-tds').innerText = formatINR(chequeWithTds);
     document.getElementById('af-cheque-without-tds').innerText = formatINR(chequeWithoutTds);
-    document.getElementById('af-cheque-total').innerText = formatINR(chequeWithTds + chequeWithoutTds);
+    let chequeSplitTotal = chequeWithTds + chequeWithoutTds;
+    document.getElementById('af-cheque-total').innerText = formatINR(chequeSplitTotal);
+    document.getElementById('af-cheque-with-tds-pct').innerText = (chequeSplitTotal > 0 ? (chequeWithTds / chequeSplitTotal * 100) : 0).toFixed(1) + '%';
+    document.getElementById('af-cheque-without-tds-pct').innerText = (chequeSplitTotal > 0 ? (chequeWithoutTds / chequeSplitTotal * 100) : 0).toFixed(1) + '%';
 
     renderGroupBreakdown('af-broker-breakdown', brokerMap);
     renderGroupBreakdown('af-frequency-breakdown', frequencyMap);
@@ -1007,13 +1031,20 @@
     container.innerHTML = "";
 
     const entries = Object.entries(dataMap).sort((a, b) => b[1] - a[1]);
+    const groupTotal = entries.reduce((sum, [, amount]) => sum + amount, 0);
 
     entries.forEach(([label, amount]) => {
+      let pct = groupTotal > 0 ? (amount / groupTotal * 100) : 0;
       let row = document.createElement('div');
-      row.className = 'summary-grid-row left-align';
-      row.innerHTML = `<span class="col-label">${label}</span><span class="col-val">${formatINR(amount)}</span>`;
+      row.className = 'summary-grid-row-3col';
+      row.innerHTML = `<span class="col-label">${label}</span><span class="col-val">${formatINR(amount)}</span><span class="col-pct">${pct.toFixed(1)}%</span>`;
       container.appendChild(row);
     });
+
+    let totalRow = document.createElement('div');
+    totalRow.className = 'summary-grid-row-3col total-row-green';
+    totalRow.innerHTML = `<span class="col-label">Total</span><span class="col-val">${formatINR(groupTotal)}</span><span class="col-pct">100%</span>`;
+    container.appendChild(totalRow);
   }
 
   function renderAllFirmsTable() {
