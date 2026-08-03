@@ -436,6 +436,15 @@
           <span class="col-label">Annual Total Interest</span>
           <span class="col-val" id="af-annual-total">₹0</span>
         </div>
+
+        <div class="summary-grid-row left-align" style="margin-top:6px;">
+          <span class="col-label">Total Annual TDS</span>
+          <span class="col-val" id="af-annual-tds">₹0</span>
+        </div>
+        <div class="summary-grid-row total-row-green">
+          <span class="col-label">Blended TDS %</span>
+          <span class="col-val" id="af-blended-tds">0%</span>
+        </div>
       </div>
 
       <div class="card-title" style="margin:18px 4px 8px;">Firm-wise Itemized Breakdown</div>
@@ -869,7 +878,7 @@
 
     let uniqueFirmNames = new Set();
     let totalCheque = 0, totalCash = 0, totalLent = 0;
-    let annualCheque = 0, annualCash = 0, annualTotal = 0;
+    let annualCheque = 0, annualCash = 0, annualTotal = 0, annualTds = 0;
 
     allFirmsRows = [];
 
@@ -888,9 +897,14 @@
       let fyCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cash)"));
       let fyTotal = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Total)"));
 
+      const tdsField = getVal(record, "Does Party Deduct TDS").toLowerCase();
+      const isTdsEnabled = (tdsField === 'yes' || tdsField === 'y' || tdsField === '1');
+      let fyTds = (deployed === 'maybe' || !isTdsEnabled) ? 0 : (fyCheque * 0.10);
+
       annualCheque += fyCheque;
       annualCash += fyCash;
       annualTotal += fyTotal;
+      annualTds += fyTds;
 
       let familyMember = getVal(record, "Family Member") || "Unknown";
       let chRate = parseRatePercent(getVal(record, "Monthly IR (Cheque)"));
@@ -928,6 +942,9 @@
     document.getElementById('af-annual-cheque').innerText = formatINR(annualCheque);
     document.getElementById('af-annual-cash').innerText = formatINR(annualCash);
     document.getElementById('af-annual-total').innerText = formatINR(annualTotal);
+    document.getElementById('af-annual-tds').innerText = formatINR(annualTds);
+    let blendedTdsPct = annualCheque > 0 ? (annualTds / annualCheque * 100) : 0;
+    document.getElementById('af-blended-tds').innerText = blendedTdsPct.toFixed(2) + '%';
 
     allFirmsSort = { key: 'amount', dir: 'desc' };
     renderAllFirmsTable();
