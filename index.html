@@ -267,15 +267,16 @@
       white-space:normal !important;word-break:normal !important;overflow-wrap:break-word !important;
     }
     #all-firms-table td:first-child, #all-firms-table th:first-child{width:14% !important;}
-    #family-itemized-table td:first-child, #family-itemized-table th:first-child{width:15% !important;}
+    #family-itemized-table td:first-child, #family-itemized-table th:first-child{width:14% !important;}
 
-    #family-itemized-table th:nth-child(2), #family-itemized-table td:nth-child(2){width:8% !important;}
-    #family-itemized-table th:nth-child(3), #family-itemized-table td:nth-child(3){width:8% !important;}
-    #family-itemized-table th:nth-child(4), #family-itemized-table td:nth-child(4){width:9% !important;}
-    #family-itemized-table th:nth-child(5), #family-itemized-table td:nth-child(5){width:15% !important;}
-    #family-itemized-table th:nth-child(6), #family-itemized-table td:nth-child(6){width:20% !important;}
-    #family-itemized-table th:nth-child(7), #family-itemized-table td:nth-child(7){width:20% !important;}
+    #family-itemized-table th:nth-child(2), #family-itemized-table td:nth-child(2){width:7% !important;}
+    #family-itemized-table th:nth-child(3), #family-itemized-table td:nth-child(3){width:7% !important;}
+    #family-itemized-table th:nth-child(4), #family-itemized-table td:nth-child(4){width:8% !important;}
+    #family-itemized-table th:nth-child(5), #family-itemized-table td:nth-child(5){width:14% !important;}
+    #family-itemized-table th:nth-child(6), #family-itemized-table td:nth-child(6){width:18% !important;}
+    #family-itemized-table th:nth-child(7), #family-itemized-table td:nth-child(7){width:18% !important;}
     #family-itemized-table th:nth-child(8), #family-itemized-table td:nth-child(8){width:5% !important;}
+    #family-itemized-table th:nth-child(9), #family-itemized-table td:nth-child(9){width:9% !important;}
 
     #family-itemized-table td:nth-child(5),
     #family-itemized-table td:nth-child(6),
@@ -610,6 +611,7 @@
               <th class="sortable-th" data-key="fyTotal" data-type="number" data-label="Full FY Int (Cheq / Cash / Total)" onclick="sortFamilyTable('fyTotal','number')">Full FY Int (Cheq / Cash / Total)</th>
               <th class="sortable-th" data-key="curTotal" data-type="number" data-label="Curr FY Int (Cheq / Cash / Total)" onclick="sortFamilyTable('curTotal','number')">Curr FY Int (Cheq / Cash / Total)</th>
               <th class="sortable-th" data-key="status" data-type="text" data-label="Status" onclick="sortFamilyTable('status','text')">Status</th>
+              <th class="sortable-th" data-key="broker" data-type="text" data-label="Broker" onclick="sortFamilyTable('broker','text')">Broker</th>
             </tr>
           </thead>
           <tbody id="family-table-body"></tbody>
@@ -667,7 +669,7 @@
 
   // Tax Matrix globals
   let taxRawMatrix = [];
-  let taxRowsData = []; // [{ label, valuesByColIndex }]
+  let taxRowsData = [];
 
   window.onload = function() {
     let p1 = new Promise((resolve, reject) => {
@@ -713,7 +715,6 @@
     taxRowsData = [];
     if (!taxRawMatrix || taxRawMatrix.length === 0) return;
 
-    // Extract rows 25 to 35 (1-based index 25-35 -> 0-based index 24 to 34)
     for (let r = 24; r <= 34 && r < taxRawMatrix.length; r++) {
       let row = taxRawMatrix[r];
       if (!row) continue;
@@ -1314,6 +1315,7 @@
         let curTotal = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Int Income (Total)"));
 
         let pStatus = getVal(record, "Latest Due Interest Paid Status");
+        let brokerVal = getVal(record, "Broker") || "N/A";
 
         if (!firmGroupMap[firmName]) {
           firmGroupMap[firmName] = {
@@ -1325,6 +1327,7 @@
             fyCheque: 0, fyCash: 0, fyTotal: 0,
             curCheque: 0, curCash: 0, curTotal: 0,
             statuses: [],
+            brokers: [],
             hasMaybe: false
           };
         }
@@ -1340,6 +1343,7 @@
         firmGroupMap[firmName].curTotal += curTotal;
 
         if (pStatus) firmGroupMap[firmName].statuses.push(pStatus);
+        if (brokerVal) firmGroupMap[firmName].brokers.push(brokerVal);
         if (deployed === 'maybe') firmGroupMap[firmName].hasMaybe = true;
 
         totalChequeLent += chequeAmt;
@@ -1368,6 +1372,9 @@
           statusBadge += ` <span class="badge badge-orange">Maybe</span>`;
         }
 
+        let uniqueBrokers = [...new Set(group.brokers)];
+        let aggBroker = uniqueBrokers.join(' & ') || 'N/A';
+
         familyRows.push({
           firmName: group.firmName,
           chequeAmt: group.chequeAmt,
@@ -1379,7 +1386,8 @@
           curTotal: group.curTotal,
           curLabel: `${formatINR(group.curCheque)} / ${formatINR(group.curCash)} / <b>${formatINR(group.curTotal)}</b>`,
           status: aggStatus,
-          statusBadge
+          statusBadge,
+          broker: aggBroker
         });
       });
 
@@ -1429,6 +1437,8 @@
             statusBadge += ` <span class="badge badge-orange">Maybe</span>`;
           }
 
+          let brokerVal = getVal(record, "Broker") || "N/A";
+
           familyRows.push({
             firmName,
             chequeAmt,
@@ -1440,7 +1450,8 @@
             curTotal,
             curLabel: `${formatINR(curCheque)} / ${formatINR(curCash)} / <b>${formatINR(curTotal)}</b>`,
             status: pStatus,
-            statusBadge
+            statusBadge,
+            broker: brokerVal
           });
         }
       });
@@ -1468,6 +1479,7 @@
         <td>-</td>
         <td>${formatINR(totalFullCheque)} / ${formatINR(totalFullCash)} / <b>${formatINR(totalFullYearSum)}</b></td>
         <td>${formatINR(totalCurCheque)} / ${formatINR(totalCurCash)} / <b>${formatINR(totalCurYearSum)}</b></td>
+        <td>-</td>
         <td>-</td>
       </tr>
     `;
@@ -1502,6 +1514,7 @@
         <td>${row.fyLabel}</td>
         <td>${row.curLabel}</td>
         <td>${row.statusBadge}</td>
+        <td>${row.broker}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -1535,11 +1548,8 @@
       return;
     }
 
-    // Identify target column index matching selectedMember
     let targetColIdx = -1;
-    let headerRow = taxRawMatrix[0] || taxRawMatrix[1] || taxRawMatrix[2] || [];
 
-    // Scan top 10 rows to locate header matching member name
     for (let r = 0; r < Math.min(10, taxRawMatrix.length); r++) {
       let row = taxRawMatrix[r];
       if (!row) continue;
@@ -1568,7 +1578,6 @@
       if (targetColIdx !== -1 && item.rowValues[targetColIdx] !== undefined) {
         rawVal = item.rowValues[targetColIdx].toString().trim();
       } else if (selectedMember === "Total (All members)") {
-        // Dynamic sum across all columns if explicit total column was not found
         let sum = 0;
         let isNumeric = false;
         for (let c = 1; c < item.rowValues.length; c++) {
