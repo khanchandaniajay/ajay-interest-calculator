@@ -257,13 +257,11 @@
     th, td{
       padding:3px 2px !important;color:#000 !important;
     }
-    /* Headers wrap onto their own lines instead of overlapping into neighboring columns */
     th{
       white-space:normal !important;word-break:break-word !important;
       overflow-wrap:break-word !important;line-height:1.15 !important;
       font-size:6.5px !important;vertical-align:bottom;
     }
-    /* Data cells: numbers/dates stay on one line, except the firm name column */
     td{white-space:nowrap !important;}
     td:first-child, th:first-child{
       white-space:normal !important;word-break:normal !important;overflow-wrap:break-word !important;
@@ -271,7 +269,6 @@
     #all-firms-table td:first-child, #all-firms-table th:first-child{width:14% !important;}
     #family-itemized-table td:first-child, #family-itemized-table th:first-child{width:15% !important;}
 
-    /* Give each Family table column a width matched to its actual content, instead of splitting evenly */
     #family-itemized-table th:nth-child(2), #family-itemized-table td:nth-child(2){width:8% !important;}
     #family-itemized-table th:nth-child(3), #family-itemized-table td:nth-child(3){width:8% !important;}
     #family-itemized-table th:nth-child(4), #family-itemized-table td:nth-child(4){width:9% !important;}
@@ -280,9 +277,6 @@
     #family-itemized-table th:nth-child(7), #family-itemized-table td:nth-child(7){width:20% !important;}
     #family-itemized-table th:nth-child(8), #family-itemized-table td:nth-child(8){width:5% !important;}
 
-    /* Safety net: these combined "X / Y / Z" columns wrap at the natural slash-spacing
-       instead of bleeding into the next cell if they still run short on room.
-       Individual numbers never break mid-number since the wrap only happens at spaces. */
     #family-itemized-table td:nth-child(5),
     #family-itemized-table td:nth-child(6),
     #family-itemized-table td:nth-child(7){
@@ -306,7 +300,6 @@
     .summary-grid-row-3col.total-row-green .col-val,
     .summary-grid-row-3col.total-row-green .col-pct{color:#000 !important;}
 
-    /* Keep the portfolio summary card readable-width but not stretched full-bleed like the tables */
     #family-results-section > .card:first-child{
       max-width:340px !important;margin:0 auto 14px !important;
     }
@@ -345,6 +338,14 @@
       <span class="choice-text">
         <span class="choice-title">Family Member View</span>
         <span class="choice-desc">See one family member's full lending portfolio.</span>
+      </span>
+      <span class="choice-arrow">→</span>
+    </button>
+    <button type="button" id="card-mode-tax" class="choice-card" onclick="switchMode('tax')">
+      <span class="choice-icon">📑</span>
+      <span class="choice-text">
+        <span class="choice-title">Taxation View</span>
+        <span class="choice-desc">See income and tax breakdown details by family member.</span>
       </span>
       <span class="choice-arrow">→</span>
     </button>
@@ -624,10 +625,35 @@
       <button type="button" class="btn-clear no-print" onclick="resetCalculator()">Clear Everything</button>
     </div>
   </div>
+
+  <!-- ================= MODE 3: TAXATION VIEW ================= -->
+  <div id="tax-view-container" class="hidden">
+    <div class="field no-print">
+      <label for="tax-select">Select Family Member</label>
+      <input type="text" id="tax-search" class="combo-search" placeholder="Type to search…" oninput="filterTaxDropdown()" autocomplete="off">
+      <select id="tax-select" onchange="handleTaxSelection()">
+        <option value="">-- Choose Member --</option>
+      </select>
+    </div>
+
+    <div id="tax-results-section" class="hidden fade-in">
+      <div class="card">
+        <div class="card-title" id="tax-card-title">Income & Tax Breakdown Summary</div>
+        <div id="tax-metrics-list"></div>
+      </div>
+
+      <div class="btn-row no-print">
+        <button type="button" class="btn btn-share" onclick="shareTaxSummary()">Share Summary</button>
+        <button type="button" class="btn btn-print" onclick="printSummary()">Save / Print</button>
+      </div>
+      <button type="button" class="btn-clear no-print" onclick="resetCalculator()">Clear Everything</button>
+    </div>
+  </div>
 </div>
 
 <script>
   const SHEET_DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTE8Ga_ayS7dMQ3novYHY9WtJFqaIPIqopKjz6s9qT5wwsWfPGXyBhe0tuEn4eKkJz1DjK1gVbYXvgN/pub?gid=81907815&single=true&output=csv&_t=" + new Date().getTime();
+  const TAX_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTE8Ga_ayS7dMQ3novYHY9WtJFqaIPIqopKjz6s9qT5wwsWfPGXyBhe0tuEn4eKkJz1DjK1gVbYXvgN/pub?gid=481574565&single=true&output=csv&_t=" + new Date().getTime();
 
   const ALL_FIRMS_VALUE = "All Firms (Consolidated)";
 
@@ -639,28 +665,67 @@
   let sortedFirmNames = [];
   let sortedFamilyMembers = [];
 
+  // Tax Matrix globals
+  let taxRawMatrix = [];
+  let taxRowsData = []; // [{ label, valuesByColIndex }]
+
   window.onload = function() {
-    Papa.parse(SHEET_DATA_URL, {
-      download: true,
-      header: true,
-      skipEmptyLines: true,
-      complete: function(parsed) {
-        businessRecords = parsed.data.filter(row => {
-          let mode = getVal(row, "CASH / CHEQUE").toLowerCase();
-          let deployed = getVal(row, "Currently Deployed ?").toLowerCase();
+    let p1 = new Promise((resolve, reject) => {
+      Papa.parse(SHEET_DATA_URL, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: res => resolve(res.data),
+        error: err => reject(err)
+      });
+    });
 
-          if (mode.includes("cheque bad") || mode.includes("bad debt")) return false;
-          if (deployed === "no") return false;
-          return true;
-        });
+    let p2 = new Promise((resolve, reject) => {
+      Papa.parse(TAX_SHEET_URL, {
+        download: true,
+        header: false,
+        skipEmptyLines: false,
+        complete: res => resolve(res.data),
+        error: err => reject(err)
+      });
+    });
 
-        initDropdowns();
-      },
-      error: function(err) {
-        alert("Error loading Google Sheet data.");
-      }
+    Promise.all([p1, p2]).then(([data1, data2]) => {
+      businessRecords = data1.filter(row => {
+        let mode = getVal(row, "CASH / CHEQUE").toLowerCase();
+        let deployed = getVal(row, "Currently Deployed ?").toLowerCase();
+
+        if (mode.includes("cheque bad") || mode.includes("bad debt")) return false;
+        if (deployed === "no") return false;
+        return true;
+      });
+
+      taxRawMatrix = data2 || [];
+      processTaxMatrixRows();
+
+      initDropdowns();
+    }).catch(() => {
+      alert("Error loading Google Sheet data.");
     });
   };
+
+  function processTaxMatrixRows() {
+    taxRowsData = [];
+    if (!taxRawMatrix || taxRawMatrix.length === 0) return;
+
+    // Extract rows 25 to 35 (1-based index 25-35 -> 0-based index 24 to 34)
+    for (let r = 24; r <= 34 && r < taxRawMatrix.length; r++) {
+      let row = taxRawMatrix[r];
+      if (!row) continue;
+      let label = (row[0] || '').toString().trim();
+      if (label) {
+        taxRowsData.push({
+          label: label,
+          rowValues: row
+        });
+      }
+    }
+  }
 
   function getVal(row, colName) {
     if (!row) return '';
@@ -691,8 +756,11 @@
   }
 
   function formatINR(num) {
-    if (!num || num === 0) return '₹0';
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(num);
+    if (!num && num !== 0) return '₹0';
+    if (typeof num === 'string' && (num.includes('₹') || num.includes('%'))) return num;
+    let parsed = typeof num === 'number' ? num : parseFloat(num.toString().replace(/[^0-9.-]/g, ''));
+    if (isNaN(parsed)) return num;
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(parsed);
   }
 
   function genericSort(rows, key, type, dir) {
@@ -726,8 +794,11 @@
   function switchMode(mode) {
     document.getElementById('card-mode-firm').classList.toggle('selected', mode === 'firm');
     document.getElementById('card-mode-family').classList.toggle('selected', mode === 'family');
+    document.getElementById('card-mode-tax').classList.toggle('selected', mode === 'tax');
+
     document.getElementById('firm-view-container').classList.toggle('hidden', mode !== 'firm');
     document.getElementById('family-view-container').classList.toggle('hidden', mode !== 'family');
+    document.getElementById('tax-view-container').classList.toggle('hidden', mode !== 'tax');
     updateCentering();
   }
 
@@ -743,12 +814,12 @@
       if (family) uniqueFamilyMembers.add(family);
     });
 
-    // Alphabetical, case-insensitive sort (e.g. "amar" and "Amar" sort together)
     sortedFirmNames = [...uniqueFirms].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
     sortedFamilyMembers = [...uniqueFamilyMembers].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
     renderFirmOptions(sortedFirmNames);
     renderFamilyOptions(sortedFamilyMembers);
+    renderTaxOptions(sortedFamilyMembers);
   }
 
   function renderFirmOptions(list) {
@@ -768,7 +839,6 @@
       firmSelect.appendChild(option);
     });
 
-    // Keep the current selection visible if it still matches the filter
     if (list.includes(previousValue) || previousValue === ALL_FIRMS_VALUE) {
       firmSelect.value = previousValue;
     }
@@ -796,6 +866,28 @@
     }
   }
 
+  function renderTaxOptions(list) {
+    const taxSelect = document.getElementById('tax-select');
+    const previousValue = taxSelect.value;
+    taxSelect.innerHTML = '<option value="">-- Choose Member --</option>';
+
+    let totalOption = document.createElement('option');
+    totalOption.value = "Total (All members)";
+    totalOption.innerHTML = "Total (All members)";
+    taxSelect.appendChild(totalOption);
+
+    list.forEach(member => {
+      let option = document.createElement('option');
+      option.value = member;
+      option.innerHTML = member;
+      taxSelect.appendChild(option);
+    });
+
+    if (list.includes(previousValue) || previousValue === "Total (All members)") {
+      taxSelect.value = previousValue;
+    }
+  }
+
   function filterFirmDropdown() {
     const query = document.getElementById('firm-search').value.trim().toLowerCase();
     const filtered = query
@@ -810,6 +902,14 @@
       ? sortedFamilyMembers.filter(name => name.toLowerCase().startsWith(query))
       : sortedFamilyMembers;
     renderFamilyOptions(filtered);
+  }
+
+  function filterTaxDropdown() {
+    const query = document.getElementById('tax-search').value.trim().toLowerCase();
+    const filtered = query
+      ? sortedFamilyMembers.filter(name => name.toLowerCase().startsWith(query))
+      : sortedFamilyMembers;
+    renderTaxOptions(filtered);
   }
 
   function handlePartySelection() {
@@ -1418,13 +1518,129 @@
     renderFamilyTable();
   }
 
+  // ================= TAXATION VIEW HANDLER =================
+  function handleTaxSelection() {
+    const selectedMember = document.getElementById('tax-select').value;
+    const resultsSec = document.getElementById('tax-results-section');
+    const metricsList = document.getElementById('tax-metrics-list');
+
+    if (!selectedMember) {
+      resultsSec.classList.add('hidden');
+      return;
+    }
+
+    if (!taxRawMatrix || taxRawMatrix.length === 0 || taxRowsData.length === 0) {
+      metricsList.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:10px 0;">No taxation data loaded.</div>`;
+      resultsSec.classList.remove('hidden');
+      return;
+    }
+
+    // Identify target column index matching selectedMember
+    let targetColIdx = -1;
+    let headerRow = taxRawMatrix[0] || taxRawMatrix[1] || taxRawMatrix[2] || [];
+
+    // Scan top 10 rows to locate header matching member name
+    for (let r = 0; r < Math.min(10, taxRawMatrix.length); r++) {
+      let row = taxRawMatrix[r];
+      if (!row) continue;
+      for (let c = 0; c < row.length; c++) {
+        let cellVal = (row[c] || '').toString().trim().toLowerCase();
+        let targetVal = selectedMember.toLowerCase();
+
+        if (targetVal === "total (all members)" && (cellVal === "total" || cellVal.includes("total"))) {
+          targetColIdx = c;
+          break;
+        } else if (cellVal === targetVal) {
+          targetColIdx = c;
+          break;
+        }
+      }
+      if (targetColIdx !== -1) break;
+    }
+
+    metricsList.innerHTML = "";
+    document.getElementById('tax-card-title').innerText = `Income & Tax Breakdown (${selectedMember})`;
+
+    taxRowsData.forEach(item => {
+      let label = item.label;
+      let rawVal = "";
+
+      if (targetColIdx !== -1 && item.rowValues[targetColIdx] !== undefined) {
+        rawVal = item.rowValues[targetColIdx].toString().trim();
+      } else if (selectedMember === "Total (All members)") {
+        // Dynamic sum across all columns if explicit total column was not found
+        let sum = 0;
+        let isNumeric = false;
+        for (let c = 1; c < item.rowValues.length; c++) {
+          let cVal = cleanNum(item.rowValues[c]);
+          if (cVal) { sum += cVal; isNumeric = true; }
+        }
+        rawVal = isNumeric ? sum.toString() : "-";
+      } else {
+        rawVal = "-";
+      }
+
+      let formattedVal = rawVal;
+      let numericVal = parseFloat(rawVal.replace(/[^0-9.-]/g, ''));
+      if (!isNaN(numericVal) && !rawVal.includes('%')) {
+        formattedVal = formatINR(numericVal);
+      }
+
+      let rowDiv = document.createElement('div');
+      let isTotalStyle = label.toLowerCase().includes('total') || label.toLowerCase().includes('net');
+
+      if (isTotalStyle) {
+        rowDiv.className = 'summary-grid-row total-row-green';
+        rowDiv.innerHTML = `<span class="col-label">${label}</span><span class="col-val">${formattedVal}</span>`;
+      } else {
+        rowDiv.className = 'summary-grid-row left-align';
+        rowDiv.innerHTML = `<span class="col-label">${label}</span><span class="col-val">${formattedVal}</span>`;
+      }
+
+      metricsList.appendChild(rowDiv);
+    });
+
+    resultsSec.classList.remove('hidden');
+    updateCentering();
+
+    setTimeout(() => {
+      document.getElementById('tax-select').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+  }
+
+  function shareTaxSummary() {
+    const selectedMember = document.getElementById('tax-select').value;
+    if (!selectedMember) return;
+
+    let textRows = [];
+    document.querySelectorAll('#tax-metrics-list .summary-grid-row').forEach(row => {
+      let label = row.querySelector('.col-label')?.innerText || '';
+      let val = row.querySelector('.col-val')?.innerText || '';
+      if (label) textRows.push(`• ${label}: ${val}`);
+    });
+
+    const summaryText = `📊 *Income & Tax Breakdown Summary - ${selectedMember}*\n` +
+      textRows.join('\n') + `\n\nCalculated via Family Interest Ledger`;
+
+    if (navigator.share) {
+      navigator.share({ title: `Tax Breakdown - ${selectedMember}`, text: summaryText }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(summaryText).then(() => alert("Copied to clipboard!"));
+    }
+  }
+
   function resetCalculator() {
     document.getElementById('firm-search').value = "";
     document.getElementById('family-search').value = "";
+    document.getElementById('tax-search').value = "";
+
     renderFirmOptions(sortedFirmNames);
     renderFamilyOptions(sortedFamilyMembers);
+    renderTaxOptions(sortedFamilyMembers);
+
     document.getElementById('party-select').value = "";
     document.getElementById('family-select').value = "";
+    document.getElementById('tax-select').value = "";
     document.getElementById('quarter-select').value = "";
     document.getElementById('start-date').value = "";
     document.getElementById('end-date').value = "";
@@ -1435,6 +1651,7 @@
     document.getElementById('results-section').classList.add('hidden');
     document.getElementById('all-firms-section').classList.add('hidden');
     document.getElementById('family-results-section').classList.add('hidden');
+    document.getElementById('tax-results-section').classList.add('hidden');
     updateCentering();
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1532,10 +1749,11 @@
     const detailsShown = !document.getElementById('details-card').classList.contains('hidden');
     const familyShown = !document.getElementById('family-results-section').classList.contains('hidden');
     const allFirmsShown = !document.getElementById('all-firms-section').classList.contains('hidden');
-    document.body.classList.toggle('center-content', !detailsShown && !familyShown && !allFirmsShown);
+    const taxShown = !document.getElementById('tax-results-section').classList.contains('hidden');
+
+    document.body.classList.toggle('center-content', !detailsShown && !familyShown && !allFirmsShown && !taxShown);
   }
 
-  // subtle live clock in header, cosmetic only
   function tickClock(){
     const el = document.getElementById('live-clock');
     if(!el) return;
