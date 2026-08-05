@@ -189,9 +189,9 @@
   .btn-share{background:var(--blue);color:#fff;}
   .btn-wa{background:var(--whatsapp);color:#fff;font-weight:700;}
   .btn-wa-sm{
-    padding:4px 8px;background:var(--whatsapp-dim);color:var(--whatsapp);
+    padding:5px 9px;background:var(--whatsapp-dim);color:var(--whatsapp);
     border:1px solid var(--whatsapp);border-radius:6px;font-size:11px;
-    font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;
+    font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;
   }
   .btn-wa-sm:hover{background:var(--whatsapp);color:#fff;}
   .btn-print{background:var(--line-soft);color:var(--text);border:1px solid var(--line);}
@@ -232,16 +232,23 @@
   .summary-grid-row.total-row-green .col-label{text-align:right;font-weight:700;color:var(--mint);padding-right:10px;font-family:'Sora',sans-serif;font-size:12px;}
   .summary-grid-row.total-row-green .col-val{text-align:right;font-weight:700;color:var(--mint);font-family:'JetBrains Mono',monospace;font-size:14px;}
 
-  .summary-grid-row-3col{display:grid;grid-template-columns:40% 32% 18% 10%;align-items:center;padding:8px 2px;font-size:13px;border-bottom:1px solid var(--line-soft);}
+  .summary-grid-row-3col{display:grid;grid-template-columns:42% 34% 24%;align-items:center;padding:8px 2px;font-size:13px;border-bottom:1px solid var(--line-soft);}
   .summary-grid-row-3col .col-label{color:var(--muted);}
   .summary-grid-row-3col .col-val{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--text);text-align:right;}
   .summary-grid-row-3col .col-pct{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--muted);text-align:right;font-size:11.5px;}
   .summary-grid-row-3col.total-row-green{
-    background:var(--mint-dim);border-radius:var(--radius-sm);padding:10px 12px;margin:6px 0 14px;border-bottom:none;grid-template-columns:40% 32% 28%;
+    background:var(--mint-dim);border-radius:var(--radius-sm);padding:10px 12px;margin:6px 0 14px;border-bottom:none;
   }
   .summary-grid-row-3col.total-row-green .col-label{font-weight:700;color:var(--mint);font-family:'Sora',sans-serif;font-size:12px;}
   .summary-grid-row-3col.total-row-green .col-val{font-weight:700;color:var(--mint);font-size:14px;}
   .summary-grid-row-3col.total-row-green .col-pct{font-weight:700;color:var(--mint);font-size:12px;}
+
+  /* Dedicated 4-column layout for Broker Breakdown with comfortable button spacing */
+  .broker-grid-row{display:grid;grid-template-columns:28% 28% 14% 30%;align-items:center;padding:8px 2px;font-size:12.5px;border-bottom:1px solid var(--line-soft);}
+  .broker-grid-row .col-label{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .broker-grid-row .col-val{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--text);text-align:right;}
+  .broker-grid-row .col-pct{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--muted);text-align:right;font-size:11.5px;padding-right:4px;}
+  .broker-grid-row .col-btn{text-align:right;}
 
   @media print{
     body{
@@ -399,7 +406,7 @@
       <div class="info-row fy-total-row"><span>Full Year Total Int</span><span class="info-value" id="info-full-total">-</span></div>
 
       <div class="btn-row no-print" style="margin-top:14px;flex-direction:column;gap:8px;">
-        <a id="firm-wa-btn" href="#" target="_blank" class="btn btn-wa">📲 WA Reminder (This Firm)</a>
+        <a id="firm-wa-btn" href="#" target="_blank" onclick="return handleSingleFirmWAClick(event)" class="btn btn-wa">📲 WA Reminder (This Firm)</a>
         <a id="broker-consolidated-wa-btn" href="#" target="_blank" class="btn btn-wa" style="background:#128C7E;">📲 WA Reminder (All Firms under Broker)</a>
       </div>
     </div>
@@ -444,19 +451,16 @@
           <span class="col-label">No. of Firms Lent To</span>
           <span class="col-val" id="af-firm-count">0</span>
           <span class="col-pct">100%</span>
-          <span></span>
         </div>
         <div class="summary-grid-row-3col">
           <span class="col-label">Total Cheque Money Lent</span>
           <span class="col-val" id="af-total-cheque">₹0</span>
           <span class="col-pct" id="af-total-cheque-pct">0%</span>
-          <span></span>
         </div>
         <div class="summary-grid-row-3col">
           <span class="col-label">Total Cash Money Lent</span>
           <span class="col-val" id="af-total-cash">₹0</span>
           <span class="col-pct" id="af-total-cash-pct">0%</span>
-          <span></span>
         </div>
         <div class="summary-grid-row total-row-green">
           <span class="col-label">Overall Total Money Lent</span>
@@ -467,13 +471,11 @@
           <span class="col-label">Annual Cheque Interest</span>
           <span class="col-val" id="af-annual-cheque">₹0</span>
           <span class="col-pct" id="af-annual-cheque-pct">0%</span>
-          <span></span>
         </div>
         <div class="summary-grid-row-3col">
           <span class="col-label">Annual Cash Interest</span>
           <span class="col-val" id="af-annual-cash">₹0</span>
           <span class="col-pct" id="af-annual-cash-pct">0%</span>
-          <span></span>
         </div>
         <div class="summary-grid-row total-row-green">
           <span class="col-label">Annual Total Interest</span>
@@ -493,13 +495,11 @@
           <span class="col-label">Cheque with TDS</span>
           <span class="col-val" id="af-cheque-with-tds">₹0</span>
           <span class="col-pct" id="af-cheque-with-tds-pct">0%</span>
-          <span></span>
         </div>
         <div class="summary-grid-row-3col">
           <span class="col-label">Cheque without TDS</span>
           <span class="col-val" id="af-cheque-without-tds">₹0</span>
           <span class="col-pct" id="af-cheque-without-tds-pct">0%</span>
-          <span></span>
         </div>
         <div class="summary-grid-row-3col total-row-green">
           <span class="col-label">Cheque Total</span>
@@ -507,14 +507,17 @@
           <span class="col-pct">100%</span>
         </div>
 
-        <div class="card-title" style="margin:16px 0 6px;">Broker-wise Principal & Consolidated Reminders</div>
-        <div id="af-broker-breakdown"></div>
-
+        <!-- 1. Interest Due Frequency-wise -->
         <div class="card-title" style="margin:16px 0 6px;">Interest Due Frequency-wise Principal</div>
         <div id="af-frequency-breakdown"></div>
 
+        <!-- 2. Interest Paid Status-wise -->
         <div class="card-title" style="margin:16px 0 6px;">Interest Paid Status-wise Principal</div>
         <div id="af-status-breakdown"></div>
+
+        <!-- 3. Broker-wise (Re-ordered to end) -->
+        <div class="card-title" style="margin:16px 0 6px;">Broker-wise Principal & Consolidated Reminders</div>
+        <div id="af-broker-breakdown"></div>
       </div>
 
       <div class="card-title" style="margin:18px 4px 8px;">Firm-wise Itemized Breakdown</div>
@@ -739,7 +742,6 @@
   }
 
   // Single Firm WA Link
-  // Single Firm WA Link with multi-line layout & bold amounts
   function buildHinglishWALink(brokerName, firmName, amountStr, phoneStr) {
     let bName = formatBrokerWithBhai(brokerName);
     let amt = amountStr && amountStr !== 'N/A' ? `*${amountStr}*` : 'interest payment';
@@ -755,16 +757,43 @@
     }
   }
 
-  // Consolidated Broker WA Link with multi-line layout & bold amounts
+  // Single Firm WA Click Safety Prompt
+  function handleSingleFirmWAClick(event) {
+    const selectedFirm = document.getElementById('party-select').value;
+    const matchingRows = businessRecords.filter(r => getVal(r, "Money Lent To") === selectedFirm);
+    if (matchingRows.length > 0) {
+      let statuses = matchingRows.map(r => getVal(r, "Latest Due Interest Paid Status")).filter(Boolean);
+      let aggStatus = statuses.join(' ').toLowerCase();
+      if (aggStatus.includes('paid') && !aggStatus.includes('pend') && !aggStatus.includes('due') && !aggStatus.includes('unpaid')) {
+        if (!confirm(`Note: ${selectedFirm} is already marked as Paid.\nDo you still want to open the WhatsApp reminder draft?`)) {
+          event.preventDefault();
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  // Consolidated Broker WA Link (FILTERED: ONLY PENDING FIRMS)
   function buildConsolidatedBrokerWALink(brokerName) {
-    if (!brokerName || brokerName === 'N/A') return '#';
+    if (!brokerName || brokerName === 'N/A') return 'javascript:void(0);';
 
     let matching = businessRecords.filter(r => {
       let b = getVal(r, "Broker");
       return b && b.trim().toLowerCase() === brokerName.trim().toLowerCase();
     });
 
-    if (matching.length === 0) return '#';
+    if (matching.length === 0) return 'javascript:void(0);';
+
+    // Option A: Filter out Paid firms
+    let pendingFirms = matching.filter(r => {
+      let st = getVal(r, "Latest Due Interest Paid Status").trim().toLowerCase();
+      return st !== 'paid';
+    });
+
+    if (pendingFirms.length === 0) {
+      return `javascript:alert("Great news! All payments under ${brokerName} are already paid up to date.");`;
+    }
 
     let bName = formatBrokerWithBhai(brokerName);
     let firstRow = matching[0];
@@ -775,7 +804,7 @@
     let items = [];
     let totalSum = 0;
 
-    matching.forEach(r => {
+    pendingFirms.forEach(r => {
       let firm = getVal(r, "Money Lent To");
       let family = getVal(r, "Family Member") || "Family";
       let nextDueAmt = cleanNum(getVal(r, "Next due amount"));
@@ -795,6 +824,7 @@
       return `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
     }
   }
+
   function processTaxMatrixRows() {
     taxRowsData = [];
     if (!taxRawMatrix || taxRawMatrix.length === 0) return;
@@ -1085,11 +1115,19 @@
       daysBeforeEl.classList.remove('due-soon-value');
     }
 
-    // Update WhatsApp Button Links (Single vs Consolidated)
+    // Count pending firms for this broker
+    let pendingCount = businessRecords.filter(r => {
+      let b = getVal(r, "Broker");
+      let st = getVal(r, "Latest Due Interest Paid Status").trim().toLowerCase();
+      return b && b.trim().toLowerCase() === rawBroker.trim().toLowerCase() && st !== 'paid';
+    }).length;
+
+    // Update WhatsApp Button Links & Labels
     const waBtn = document.getElementById('firm-wa-btn');
     waBtn.href = buildHinglishWALink(rawBroker, selectedFirm, formattedDueAmt, rawPhone);
 
     const consolidatedWaBtn = document.getElementById('broker-consolidated-wa-btn');
+    consolidatedWaBtn.innerText = `📲 WA Reminder (All Firms under Broker - ${pendingCount} Due)`;
     consolidatedWaBtn.href = buildConsolidatedBrokerWALink(rawBroker);
 
     document.getElementById('details-card').classList.remove('hidden');
@@ -1221,9 +1259,9 @@
     document.getElementById('af-cheque-with-tds-pct').innerText = (chequeSplitTotal > 0 ? (chequeWithTds / chequeSplitTotal * 100) : 0).toFixed(1) + '%';
     document.getElementById('af-cheque-without-tds-pct').innerText = (chequeSplitTotal > 0 ? (chequeWithoutTds / chequeSplitTotal * 100) : 0).toFixed(1) + '%';
 
-    renderBrokerGroupBreakdown('af-broker-breakdown', brokerMap);
     renderGroupBreakdown('af-frequency-breakdown', frequencyMap);
     renderGroupBreakdown('af-status-breakdown', statusMap);
+    renderBrokerGroupBreakdown('af-broker-breakdown', brokerMap);
 
     allFirmsSort = { key: 'amount', dir: 'desc' };
     renderAllFirmsTable();
@@ -1236,6 +1274,7 @@
     }, 150);
   }
 
+  // Broker Breakdown with Fixed Mobile Spacing & Active Dues Count Badge
   function renderBrokerGroupBreakdown(containerId, dataMap) {
     const container = document.getElementById(containerId);
     container.innerHTML = "";
@@ -1245,10 +1284,22 @@
 
     entries.forEach(([label, amount]) => {
       let pct = groupTotal > 0 ? (amount / groupTotal * 100) : 0;
+      
+      let pendingCount = businessRecords.filter(r => {
+        let b = getVal(r, "Broker");
+        let st = getVal(r, "Latest Due Interest Paid Status").trim().toLowerCase();
+        return b && b.trim().toLowerCase() === label.trim().toLowerCase() && st !== 'paid';
+      }).length;
+
       let waConsolidatedLink = buildConsolidatedBrokerWALink(label);
       let row = document.createElement('div');
-      row.className = 'summary-grid-row-3col';
-      row.innerHTML = `<span class="col-label">${label}</span><span class="col-val">${formatINR(amount)}</span><span class="col-pct">${pct.toFixed(1)}%</span><span><a href="${waConsolidatedLink}" target="_blank" class="btn-wa-sm no-print">📲 WA All</a></span>`;
+      row.className = 'broker-grid-row';
+      row.innerHTML = `
+        <span class="col-label">${label}</span>
+        <span class="col-val">${formatINR(amount)}</span>
+        <span class="col-pct">${pct.toFixed(1)}%</span>
+        <span class="col-btn"><a href="${waConsolidatedLink}" target="_blank" class="btn-wa-sm no-print">📲 WA (${pendingCount} Due)</a></span>
+      `;
       container.appendChild(row);
     });
 
@@ -1269,7 +1320,6 @@
       let pct = groupTotal > 0 ? (amount / groupTotal * 100) : 0;
       let row = document.createElement('div');
       row.className = 'summary-grid-row-3col';
-      row.style.gridTemplateColumns = '42% 36% 22%';
       row.innerHTML = `<span class="col-label">${label}</span><span class="col-val">${formatINR(amount)}</span><span class="col-pct">${pct.toFixed(1)}%</span>`;
       container.appendChild(row);
     });
