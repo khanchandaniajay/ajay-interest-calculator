@@ -25,6 +25,7 @@
     --red:#FF5C6C;
     --red-dim:#3A1418;
     --blue:#4C82FF;
+    --blue-dim:rgba(76,130,255,0.18);
     --whatsapp:#25D366;
     --whatsapp-dim:#0D3B1E;
     --radius:16px;
@@ -218,9 +219,12 @@
   tfoot tr{background:rgba(47,227,166,0.05);border-top:1px solid var(--mint-dim);}
   tfoot td{color:var(--mint);font-weight:700;}
 
-  .badge{padding:3px 8px;border-radius:6px;font-weight:700;font-size:10px;display:inline-block;font-family:'Inter',sans-serif;}
+  /* Unified Status Badges */
+  .badge{padding:3px 8px;border-radius:6px;font-weight:700;font-size:10px;display:inline-block;font-family:'Inter',sans-serif;text-transform:capitalize;}
   .badge-green{background:var(--mint-dim);color:var(--mint);}
+  .badge-yellow{background:var(--amber-dim);color:var(--amber);}
   .badge-red{background:var(--red-dim);color:var(--red);}
+  .badge-blue{background:var(--blue-dim);color:var(--blue);}
   .badge-orange{background:var(--amber-dim);color:var(--amber);}
 
   .summary-grid-row{display:grid;grid-template-columns:58% 42%;align-items:center;padding:8px 2px;font-size:13px;border-bottom:1px solid var(--line-soft);}
@@ -249,6 +253,12 @@
   .broker-grid-row .col-val{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--text);text-align:right;}
   .broker-grid-row .col-pct{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--muted);text-align:right;font-size:11.5px;padding-right:4px;}
   .broker-grid-row .col-btn{text-align:right;}
+
+  /* Filter bar styling */
+  .table-header-flex{display:flex;justify-content:space-between;align-items:center;margin:18px 4px 8px;gap:10px;flex-wrap:wrap;}
+  .filter-inline{display:flex;align-items:center;gap:8px;}
+  .filter-inline label{margin:0;font-size:11.5px;color:var(--muted);white-space:nowrap;}
+  .filter-inline select{padding:6px 28px 6px 10px;font-size:12px;background-position:right 8px center;}
 
   @media print{
     body{
@@ -281,8 +291,8 @@
     td:first-child, th:first-child{
       white-space:normal !important;word-break:normal !important;overflow-wrap:break-word !important;
     }
-    #all-firms-table td:first-child, #all-firms-table th:first-child{width:14% !important;}
-    #family-itemized-table td:first-child, #family-itemized-table th:first-child{width:14% !important;}
+    #all-firms-table td:first-child, #all-firms-table th:first-child{width:13% !important;}
+    #family-itemized-table td:first-child, #family-itemized-table th:first-child{width:13% !important;}
 
     #family-itemized-table th:nth-child(2), #family-itemized-table td:nth-child(2){width:7% !important;}
     #family-itemized-table th:nth-child(3), #family-itemized-table td:nth-child(3){width:7% !important;}
@@ -290,7 +300,7 @@
     #family-itemized-table th:nth-child(5), #family-itemized-table td:nth-child(5){width:14% !important;}
     #family-itemized-table th:nth-child(6), #family-itemized-table td:nth-child(6){width:18% !important;}
     #family-itemized-table th:nth-child(7), #family-itemized-table td:nth-child(7){width:18% !important;}
-    #family-itemized-table th:nth-child(8), #family-itemized-table td:nth-child(8){width:5% !important;}
+    #family-itemized-table th:nth-child(8), #family-itemized-table td:nth-child(8){width:6% !important;}
     #family-itemized-table th:nth-child(9), #family-itemized-table td:nth-child(9){width:9% !important;}
 
     #family-itemized-table td:nth-child(5),
@@ -515,12 +525,25 @@
         <div class="card-title" style="margin:16px 0 6px;">Interest Paid Status-wise Principal</div>
         <div id="af-status-breakdown"></div>
 
-        <!-- 3. Broker-wise (Re-ordered to end) -->
+        <!-- 3. Broker-wise -->
         <div class="card-title" style="margin:16px 0 6px;">Broker-wise Principal & Consolidated Reminders</div>
         <div id="af-broker-breakdown"></div>
       </div>
 
-      <div class="card-title" style="margin:18px 4px 8px;">Firm-wise Itemized Breakdown</div>
+      <!-- Itemized Breakdown Title & Payment Status Filter -->
+      <div class="table-header-flex">
+        <div class="card-title" style="margin:0;">Firm-wise Itemized Breakdown</div>
+        <div class="filter-inline no-print">
+          <label for="af-status-filter">Filter Status:</label>
+          <select id="af-status-filter" onchange="renderAllFirmsTable()">
+            <option value="ALL">All Statuses</option>
+            <option value="PENDING">Pending / Due Only</option>
+            <option value="PAID">Paid Only</option>
+            <option value="PAPA SHOP">Papa Shop Only</option>
+          </select>
+        </div>
+      </div>
+
       <div class="table-full-bleed">
       <div class="table-responsive">
         <table id="all-firms-table">
@@ -535,6 +558,7 @@
               <th class="sortable-th" data-key="nextPayment" data-type="text" data-label="Next Payment" onclick="sortAllFirmsTable('nextPayment','text')">Next Payment</th>
               <th class="sortable-th" data-key="daysBefore" data-type="number" data-label="Days Before" onclick="sortAllFirmsTable('daysBefore','number')">Days Before</th>
               <th class="sortable-th" data-key="nextDueAmount" data-type="number" data-label="Next Due Amt" onclick="sortAllFirmsTable('nextDueAmount','number')">Next Due Amt</th>
+              <th class="sortable-th" data-key="status" data-type="text" data-label="Payment Status" onclick="sortAllFirmsTable('status','text')">Payment Status</th>
               <th class="sortable-th" data-key="broker" data-type="text" data-label="Broker" onclick="sortAllFirmsTable('broker','text')">Broker</th>
             </tr>
           </thead>
@@ -741,6 +765,30 @@
     return trimmed + ' bhai';
   }
 
+  // Unified Status Badge Generator across views
+  function getStatusBadge(pStatus, hasMaybe = false) {
+    if (!pStatus) return '<span class="badge badge-green">Paid</span>';
+    let rawStr = pStatus.toString().trim();
+    let lower = rawStr.toLowerCase();
+
+    let badgeHtml = '';
+    if (lower.includes('papa shop') || lower.includes('papashop')) {
+      badgeHtml = `<span class="badge badge-blue">${rawStr}</span>`;
+    } else if (lower.includes('pend') || lower.includes('due') || lower.includes('unpaid') || lower.includes('overdue')) {
+      badgeHtml = `<span class="badge badge-yellow">${rawStr}</span>`;
+    } else if (lower.includes('paid')) {
+      badgeHtml = `<span class="badge badge-green">${rawStr}</span>`;
+    } else {
+      badgeHtml = `<span class="badge badge-orange">${rawStr}</span>`;
+    }
+
+    if (hasMaybe) {
+      badgeHtml += ` <span class="badge badge-orange">Maybe</span>`;
+    }
+
+    return badgeHtml;
+  }
+
   // Single Firm WA Link
   function buildHinglishWALink(brokerName, firmName, amountStr, phoneStr) {
     let bName = formatBrokerWithBhai(brokerName);
@@ -785,7 +833,6 @@
 
     if (matching.length === 0) return 'javascript:void(0);';
 
-    // Option A: Filter out Paid firms
     let pendingFirms = matching.filter(r => {
       let st = getVal(r, "Latest Due Interest Paid Status").trim().toLowerCase();
       return st !== 'paid';
@@ -1216,7 +1263,9 @@
       let formattedDueAmt = nextDueAmount > 0 ? formatINR(nextDueAmount) : 'N/A';
       let broker = getVal(record, "Broker") || 'N/A';
       let brokerPhone = getVal(record, "Broker Phone");
+      let rawStatus = getVal(record, "Latest Due Interest Paid Status") || "Paid";
 
+      let statusBadge = getStatusBadge(rawStatus, deployed === 'maybe');
       let waLink = buildHinglishWALink(broker, firmName, formattedDueAmt, brokerPhone);
 
       allFirmsRows.push({
@@ -1230,6 +1279,8 @@
         daysBefore: daysBeforeNum,
         daysBeforeBadge,
         nextDueAmount,
+        status: rawStatus,
+        statusBadge,
         broker,
         waLink
       });
@@ -1331,9 +1382,23 @@
   }
 
   function renderAllFirmsTable() {
+    const filterVal = document.getElementById('af-status-filter') ? document.getElementById('af-status-filter').value : 'ALL';
+    
+    let filteredRows = allFirmsRows.filter(row => {
+      let st = (row.status || '').toString().toLowerCase();
+      if (filterVal === 'PENDING') {
+        return st.includes('pend') || st.includes('due') || st.includes('unpaid') || st.includes('overdue');
+      } else if (filterVal === 'PAID') {
+        return st.includes('paid') && !st.includes('unpaid');
+      } else if (filterVal === 'PAPA SHOP') {
+        return st.includes('papa') || st.includes('shop');
+      }
+      return true;
+    });
+
     const thEl = document.querySelector('#all-firms-table thead th[data-key="' + allFirmsSort.key + '"]');
     const type = thEl ? thEl.getAttribute('data-type') : 'number';
-    const sorted = genericSort(allFirmsRows, allFirmsSort.key, type, allFirmsSort.dir);
+    const sorted = genericSort(filteredRows, allFirmsSort.key, type, allFirmsSort.dir);
 
     const tbody = document.getElementById('all-firms-table-body');
     tbody.innerHTML = "";
@@ -1350,6 +1415,7 @@
         <td>${row.nextPayment}</td>
         <td>${row.daysBeforeBadge}</td>
         <td>${formatINR(row.nextDueAmount)}</td>
+        <td>${row.statusBadge}</td>
         <td>${row.broker} <a href="${row.waLink}" target="_blank" class="btn-wa-sm no-print">📲 WA</a></td>
       `;
       tbody.appendChild(tr);
@@ -1538,15 +1604,7 @@
       Object.values(firmGroupMap).forEach(group => {
         let uniqueStatuses = [...new Set(group.statuses)];
         let aggStatus = uniqueStatuses.join(' and ') || 'Paid';
-        let pStatusLower = aggStatus.toLowerCase();
-        let statusBadge = `<span class="badge badge-green">${aggStatus}</span>`;
-
-        if (pStatusLower.includes('pend') || pStatusLower.includes('overdue') || pStatusLower.includes('unpaid') || pStatusLower.includes('due')) {
-          statusBadge = `<span class="badge badge-red">${aggStatus}</span>`;
-        }
-        if (group.hasMaybe) {
-          statusBadge += ` <span class="badge badge-orange">Maybe</span>`;
-        }
+        let statusBadge = getStatusBadge(aggStatus, group.hasMaybe);
 
         let uniqueBrokers = [...new Set(group.brokers)];
         let aggBroker = uniqueBrokers.join(' & ') || 'N/A';
@@ -1604,16 +1662,8 @@
           totalCurCash += curCash;
           totalCurYearSum += curTotal;
 
-          let pStatus = getVal(record, "Latest Due Interest Paid Status");
-          let pStatusLower = pStatus.toLowerCase();
-          let statusBadge = `<span class="badge badge-green">${pStatus || 'Paid'}</span>`;
-
-          if (pStatusLower.includes('pend') || pStatusLower.includes('overdue') || pStatusLower.includes('unpaid') || pStatusLower.includes('due')) {
-            statusBadge = `<span class="badge badge-red">${pStatus}</span>`;
-          }
-          if (deployed === 'maybe') {
-            statusBadge += ` <span class="badge badge-orange">Maybe</span>`;
-          }
+          let pStatus = getVal(record, "Latest Due Interest Paid Status") || 'Paid';
+          let statusBadge = getStatusBadge(pStatus, deployed === 'maybe');
 
           let brokerVal = getVal(record, "Broker") || "N/A";
           let brokerPhone = getVal(record, "Broker Phone");
