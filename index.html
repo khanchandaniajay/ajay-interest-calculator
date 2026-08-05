@@ -739,10 +739,11 @@
   }
 
   // Single Firm WA Link
+  // Single Firm WA Link with multi-line layout & bold amounts
   function buildHinglishWALink(brokerName, firmName, amountStr, phoneStr) {
     let bName = formatBrokerWithBhai(brokerName);
-    let amt = amountStr && amountStr !== 'N/A' ? amountStr : 'interest payment';
-    let msg = `Hi ${bName}, aaj ${firmName} ka interest payment ${amt} due hai. Request you to kindly check and get it processed. Thanks, Ajay`;
+    let amt = amountStr && amountStr !== 'N/A' ? `*${amountStr}*` : 'interest payment';
+    let msg = `Hi ${bName}\nAaj ${firmName} ka interest payment ${amt} due hai.\nRequest you to kindly check and get it processed.\nThanks`;
     
     let cleanPhone = (phoneStr || '').toString().replace(/[^0-9]/g, '');
     if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
@@ -754,7 +755,7 @@
     }
   }
 
-  // Consolidated Broker WA Link (All Firms under a broker)
+  // Consolidated Broker WA Link with multi-line layout & bold amounts
   function buildConsolidatedBrokerWALink(brokerName) {
     if (!brokerName || brokerName === 'N/A') return '#';
 
@@ -778,15 +779,15 @@
       let firm = getVal(r, "Money Lent To");
       let family = getVal(r, "Family Member") || "Family";
       let nextDueAmt = cleanNum(getVal(r, "Next due amount"));
-      let amtStr = nextDueAmt > 0 ? formatINR(nextDueAmt) : "scheduled interest amount";
+      let amtStr = nextDueAmt > 0 ? `*${formatINR(nextDueAmt)}*` : "scheduled interest amount";
       
       totalSum += nextDueAmt;
       items.push(`• ${firm} (${family}): ${amtStr}`);
     });
 
     let itemsListStr = items.join('\n');
-    let totalFormattedStr = totalSum > 0 ? `\n\nTotal Due: ${formatINR(totalSum)}` : '';
-    let msg = `Hi ${bName}, aaj niche diye gaye interest payments due hain:\n\n${itemsListStr}${totalFormattedStr}\n\nRequest you to kindly check and get them processed. Thanks, Ajay`;
+    let totalFormattedStr = totalSum > 0 ? `\n\nTotal Due: *${formatINR(totalSum)}*` : '';
+    let msg = `Hi ${bName}\nAaj niche diye gaye interest payments due hain:\n\n${itemsListStr}${totalFormattedStr}\n\nRequest you to kindly check and get them processed.\nThanks`;
 
     if (cleanPhone) {
       return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
@@ -794,7 +795,6 @@
       return `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
     }
   }
-
   function processTaxMatrixRows() {
     taxRowsData = [];
     if (!taxRawMatrix || taxRawMatrix.length === 0) return;
