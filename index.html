@@ -785,23 +785,32 @@
     return true;
   }
 
-  // Single Firm WA Link Construction
-  function buildHinglishWALink(brokerName, firmName, amountStr, phoneStr) {
+  // Single Firm WA Link Construction with New Single-Firm Formatting
+  function buildHinglishWALink(brokerName, firmName, amountNum, phoneStr, isTds) {
     let bName = formatBrokerWithBhai(brokerName);
-    let amt = amountStr && amountStr !== 'N/A' ? `*${amountStr}*` : 'interest payment';
-    let msg = `Hi ${bName}\nAaj ${firmName} ka interest payment ${amt} due hai.\nRequest you to kindly check and get it processed.\nThanks.`;
+    let dueAmt = cleanNum(amountNum);
+    let dueStr = dueAmt > 0 ? formatINR(dueAmt) : 'scheduled interest amount';
+    
+    let msg = "";
+    if (isTds && dueAmt > 0) {
+      let tdsAmt = Math.round(dueAmt * 0.10);
+      let netAmt = dueAmt - tdsAmt;
+      msg = `Hi ${bName}\nBelow interest pending \n\nName:\n*${firmName}*\nDue: *${formatINR(dueAmt)}*\nTDS: *${formatINR(tdsAmt)}*\nNet: *${formatINR(netAmt)}*\n\nRequest you to kindly check and get it processed.\nThanks.`;
+    } else {
+      msg = `Hi ${bName}\nBelow interest pending \n\nName:\n*${firmName}*\nDue: *${dueStr}*\n\nRequest you to kindly check and get it processed.\nThanks.`;
+    }
     
     let cleanPhone = (phoneStr || '').toString().replace(/[^0-9]/g, '');
     if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
 
     if (cleanPhone) {
-      return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
+      return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
     } else {
-      return `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+      return `https://wa.me/?text=${encodeURIComponent(msg)}`;
     }
   }
 
-  // Single Firm WA Click Safety Prompt (Handles Gross/TDS/Net formatting)
+  // Single Firm WA Click Safety Prompt (Firm View Card)
   function handleSingleFirmWAClick(event) {
     const selectedFirm = document.getElementById('party-select').value;
     const matchingRows = businessRecords.filter(r => getVal(r, "Money Lent To") === selectedFirm);
@@ -831,15 +840,16 @@
       let dueAmt = cleanNum(getVal(row, "Next due amount"));
       let isTds = checkIsTdsEnabled(row);
 
-      if (isTds) {
+      if (isTds && dueAmt > 0) {
         let tdsAmt = Math.round(dueAmt * 0.10);
         let netAmt = dueAmt - tdsAmt;
-        msg = `Hi ${bName}\n*${selectedFirm}*\nInterest payment due hai:\n\nDue: *${formatINR(dueAmt)}*\nTDS: *${formatINR(tdsAmt)}*\nNet: *${formatINR(netAmt)}*\n\nRequest you to kindly check and get it processed.\nThanks.`;
+        msg = `Hi ${bName}\nBelow interest pending \n\nName:\n*${selectedFirm}*\nDue: *${formatINR(dueAmt)}*\nTDS: *${formatINR(tdsAmt)}*\nNet: *${formatINR(netAmt)}*\n\nRequest you to kindly check and get it processed.\nThanks.`;
       } else {
-        msg = `Hi ${bName}\nAaj ${selectedFirm} ka interest payment *${formatINR(dueAmt)}* due hai.\nRequest you to kindly check and get it processed.\nThanks.`;
+        let dueStr = dueAmt > 0 ? formatINR(dueAmt) : 'scheduled interest amount';
+        msg = `Hi ${bName}\nBelow interest pending \n\nName:\n*${selectedFirm}*\nDue: *${dueStr}*\n\nRequest you to kindly check and get it processed.\nThanks.`;
       }
     } else {
-      // Multi-loan entry for single firm
+      // Multi-loan entry for single firm (e.g. Gunjan + Suresh HUF)
       let items = [];
       let totalDue = 0, totalTds = 0, totalNet = 0;
       let hasAnyTds = false;
@@ -870,12 +880,12 @@
         summaryBlock = `\n\n*Total Due:* *${formatINR(totalDue)}*`;
       }
 
-      msg = `Hi ${bName}\n*${selectedFirm}*\nNiche diye gaye interest payments due hain:\n\n${itemsListStr}${summaryBlock}\n\nRequest you to kindly check and get them processed.\nThanks.`;
+      msg = `Hi ${bName}\nBelow interest pending \n\nName:\n*${selectedFirm}*\n\n${itemsListStr}${summaryBlock}\n\nRequest you to kindly check and get them processed.\nThanks.`;
     }
 
     let waUrl = cleanPhone 
-      ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`
-      : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
 
     window.open(waUrl, '_blank');
     event.preventDefault();
@@ -953,8 +963,8 @@
     let msg = `Hi ${bName}\nAaj niche diye gaye interest payments due hain:\n\n${mainContentStr}${summaryBlock}\n\nRequest you to kindly check and get them processed.\nThanks.`;
 
     let waUrl = cleanPhone 
-      ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`
-      : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
 
     window.open(waUrl, '_blank');
     event.preventDefault();
@@ -1344,11 +1354,10 @@
         ? ((daysBeforeNum <= 7 && daysBeforeNum >= 0) ? `<span class="badge badge-orange">${daysBeforeRaw}</span>` : daysBeforeRaw)
         : 'N/A';
       let nextDueAmount = cleanNum(getVal(record, "Next due amount"));
-      let formattedDueAmt = nextDueAmount > 0 ? formatINR(nextDueAmount) : 'N/A';
       let broker = getVal(record, "Broker") || 'N/A';
       let brokerPhone = getVal(record, "Broker Phone");
 
-      let waLink = buildHinglishWALink(broker, firmName, formattedDueAmt, brokerPhone);
+      let waLink = buildHinglishWALink(broker, firmName, nextDueAmount, brokerPhone, isTdsEnabled);
 
       allFirmsRows.push({
         firmName, familyMember,
@@ -1632,7 +1641,7 @@
         let brokerVal = getVal(record, "Broker") || "N/A";
         let brokerPhone = getVal(record, "Broker Phone");
         let nextDueAmt = cleanNum(getVal(record, "Next due amount"));
-        let formattedDueAmt = nextDueAmt > 0 ? formatINR(nextDueAmt) : 'N/A';
+        let isTdsEnabled = checkIsTdsEnabled(record);
 
         if (!firmGroupMap[firmName]) {
           firmGroupMap[firmName] = {
@@ -1646,7 +1655,8 @@
             statuses: [],
             brokers: [],
             brokerPhone: brokerPhone,
-            nextDueAmtStr: formattedDueAmt,
+            nextDueAmt: nextDueAmt,
+            isTds: isTdsEnabled,
             hasMaybe: false
           };
         }
@@ -1689,7 +1699,7 @@
 
         let uniqueBrokers = [...new Set(group.brokers)];
         let aggBroker = uniqueBrokers.join(' & ') || 'N/A';
-        let waLink = buildHinglishWALink(aggBroker, group.firmName, group.nextDueAmtStr, group.brokerPhone);
+        let waLink = buildHinglishWALink(aggBroker, group.firmName, group.nextDueAmt, group.brokerPhone, group.isTds);
 
         familyRows.push({
           firmName: group.firmName,
@@ -1753,8 +1763,8 @@
           let brokerVal = getVal(record, "Broker") || "N/A";
           let brokerPhone = getVal(record, "Broker Phone");
           let nextDueAmt = cleanNum(getVal(record, "Next due amount"));
-          let formattedDueAmt = nextDueAmt > 0 ? formatINR(nextDueAmt) : 'N/A';
-          let waLink = buildHinglishWALink(brokerVal, firmName, formattedDueAmt, brokerPhone);
+          let isTdsEnabled = checkIsTdsEnabled(record);
+          let waLink = buildHinglishWALink(brokerVal, firmName, nextDueAmt, brokerPhone, isTdsEnabled);
 
           familyRows.push({
             firmName,
