@@ -25,7 +25,7 @@
     --red:#FF5C6C;
     --red-dim:#3A1418;
     --blue:#4C82FF;
-    --blue-dim:rgba(76,130,255,0.18);
+    --blue-dim:#162447;
     --whatsapp:#25D366;
     --whatsapp-dim:#0D3B1E;
     --radius:16px;
@@ -210,7 +210,7 @@
     padding-left:16px;padding-right:16px;box-sizing:border-box;
   }
   .table-full-bleed .table-responsive{border-radius:0;}
-  table{width:100%;border-collapse:collapse;font-size:11.5px;min-width:620px;font-family:'JetBrains Mono',monospace;}
+  table{width:100%;border-collapse:collapse;font-size:11.5px;min-width:640px;font-family:'JetBrains Mono',monospace;}
   th{background:var(--line-soft);color:var(--muted);padding:9px 8px;text-align:left;font-weight:600;font-family:'Inter',sans-serif;font-size:10.5px;text-transform:uppercase;letter-spacing:0.03em;}
   th.sortable-th{cursor:pointer;user-select:none;transition:color .15s,background .15s;}
   th.sortable-th:active{background:var(--card-hover);color:var(--mint);}
@@ -219,13 +219,11 @@
   tfoot tr{background:rgba(47,227,166,0.05);border-top:1px solid var(--mint-dim);}
   tfoot td{color:var(--mint);font-weight:700;}
 
-  /* Unified Status Badges */
-  .badge{padding:3px 8px;border-radius:6px;font-weight:700;font-size:10px;display:inline-block;font-family:'Inter',sans-serif;text-transform:capitalize;}
-  .badge-green{background:var(--mint-dim);color:var(--mint);}
-  .badge-yellow{background:var(--amber-dim);color:var(--amber);}
-  .badge-red{background:var(--red-dim);color:var(--red);}
-  .badge-blue{background:var(--blue-dim);color:var(--blue);}
-  .badge-orange{background:var(--amber-dim);color:var(--amber);}
+  .badge{padding:3px 8px;border-radius:6px;font-weight:700;font-size:10px;display:inline-block;font-family:'Inter',sans-serif;white-space:nowrap;}
+  .badge-green{background:var(--mint-dim);color:var(--mint);border:1px solid rgba(47,227,166,0.3);}
+  .badge-orange{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(240,180,41,0.3);}
+  .badge-blue{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(76,130,255,0.3);}
+  .badge-red{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,92,108,0.3);}
 
   .summary-grid-row{display:grid;grid-template-columns:58% 42%;align-items:center;padding:8px 2px;font-size:13px;border-bottom:1px solid var(--line-soft);}
   .summary-grid-row.left-align .col-label{color:var(--muted);}
@@ -247,18 +245,14 @@
   .summary-grid-row-3col.total-row-green .col-val{font-weight:700;color:var(--mint);font-size:14px;}
   .summary-grid-row-3col.total-row-green .col-pct{font-weight:700;color:var(--mint);font-size:12px;}
 
-  /* Dedicated 4-column layout for Broker Breakdown with comfortable button spacing */
   .broker-grid-row{display:grid;grid-template-columns:28% 28% 14% 30%;align-items:center;padding:8px 2px;font-size:12.5px;border-bottom:1px solid var(--line-soft);}
   .broker-grid-row .col-label{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .broker-grid-row .col-val{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--text);text-align:right;}
   .broker-grid-row .col-pct{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--muted);text-align:right;font-size:11.5px;padding-right:4px;}
   .broker-grid-row .col-btn{text-align:right;}
 
-  /* Filter bar styling */
-  .table-header-flex{display:flex;justify-content:space-between;align-items:center;margin:18px 4px 8px;gap:10px;flex-wrap:wrap;}
-  .filter-inline{display:flex;align-items:center;gap:8px;}
-  .filter-inline label{margin:0;font-size:11.5px;color:var(--muted);white-space:nowrap;}
-  .filter-inline select{padding:6px 28px 6px 10px;font-size:12px;background-position:right 8px center;}
+  .filter-bar{display:flex;align-items:center;justify-content:space-between;margin:18px 4px 10px;}
+  .filter-bar .title{margin:0;}
 
   @media print{
     body{
@@ -290,23 +284,6 @@
     td{white-space:nowrap !important;}
     td:first-child, th:first-child{
       white-space:normal !important;word-break:normal !important;overflow-wrap:break-word !important;
-    }
-    #all-firms-table td:first-child, #all-firms-table th:first-child{width:13% !important;}
-    #family-itemized-table td:first-child, #family-itemized-table th:first-child{width:13% !important;}
-
-    #family-itemized-table th:nth-child(2), #family-itemized-table td:nth-child(2){width:7% !important;}
-    #family-itemized-table th:nth-child(3), #family-itemized-table td:nth-child(3){width:7% !important;}
-    #family-itemized-table th:nth-child(4), #family-itemized-table td:nth-child(4){width:8% !important;}
-    #family-itemized-table th:nth-child(5), #family-itemized-table td:nth-child(5){width:14% !important;}
-    #family-itemized-table th:nth-child(6), #family-itemized-table td:nth-child(6){width:18% !important;}
-    #family-itemized-table th:nth-child(7), #family-itemized-table td:nth-child(7){width:18% !important;}
-    #family-itemized-table th:nth-child(8), #family-itemized-table td:nth-child(8){width:6% !important;}
-    #family-itemized-table th:nth-child(9), #family-itemized-table td:nth-child(9){width:9% !important;}
-
-    #family-itemized-table td:nth-child(5),
-    #family-itemized-table td:nth-child(6),
-    #family-itemized-table td:nth-child(7){
-      white-space:normal !important;word-break:normal !important;overflow-wrap:normal !important;
     }
     th{background:#eee !important;color:#000 !important;}
     tfoot tr{background:#f3f3f3 !important;}
@@ -530,16 +507,15 @@
         <div id="af-broker-breakdown"></div>
       </div>
 
-      <!-- Itemized Breakdown Title & Payment Status Filter -->
-      <div class="table-header-flex">
-        <div class="card-title" style="margin:0;">Firm-wise Itemized Breakdown</div>
-        <div class="filter-inline no-print">
-          <label for="af-status-filter">Filter Status:</label>
-          <select id="af-status-filter" onchange="renderAllFirmsTable()">
-            <option value="ALL">All Statuses</option>
-            <option value="PENDING">Pending / Due Only</option>
-            <option value="PAID">Paid Only</option>
-            <option value="PAPA SHOP">Papa Shop Only</option>
+      <div class="filter-bar no-print">
+        <div class="card-title title">Firm-wise Itemized Breakdown</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <label for="status-filter" style="font-size:11px;color:var(--muted);font-weight:600;margin:0;">Filter Status:</label>
+          <select id="status-filter" onchange="renderAllFirmsTable()" style="width:auto;padding:6px 10px;font-size:12px;margin:0;">
+            <option value="All">All Statuses</option>
+            <option value="Pending">Pending / Due Only</option>
+            <option value="Paid">Paid Only</option>
+            <option value="Papa Shop">Papa Shop Only</option>
           </select>
         </div>
       </div>
@@ -558,7 +534,7 @@
               <th class="sortable-th" data-key="nextPayment" data-type="text" data-label="Next Payment" onclick="sortAllFirmsTable('nextPayment','text')">Next Payment</th>
               <th class="sortable-th" data-key="daysBefore" data-type="number" data-label="Days Before" onclick="sortAllFirmsTable('daysBefore','number')">Days Before</th>
               <th class="sortable-th" data-key="nextDueAmount" data-type="number" data-label="Next Due Amt" onclick="sortAllFirmsTable('nextDueAmount','number')">Next Due Amt</th>
-              <th class="sortable-th" data-key="status" data-type="text" data-label="Payment Status" onclick="sortAllFirmsTable('status','text')">Payment Status</th>
+              <th class="sortable-th" data-key="paymentStatus" data-type="text" data-label="Payment Status" onclick="sortAllFirmsTable('paymentStatus','text')">Payment Status</th>
               <th class="sortable-th" data-key="broker" data-type="text" data-label="Broker" onclick="sortAllFirmsTable('broker','text')">Broker</th>
             </tr>
           </thead>
@@ -765,31 +741,47 @@
     return trimmed + ' bhai';
   }
 
-  // Unified Status Badge Generator across views
-  function getStatusBadge(pStatus, hasMaybe = false) {
-    if (!pStatus) return '<span class="badge badge-green">Paid</span>';
-    let rawStr = pStatus.toString().trim();
-    let lower = rawStr.toLowerCase();
-
-    let badgeHtml = '';
-    if (lower.includes('papa shop') || lower.includes('papashop')) {
-      badgeHtml = `<span class="badge badge-blue">${rawStr}</span>`;
-    } else if (lower.includes('pend') || lower.includes('due') || lower.includes('unpaid') || lower.includes('overdue')) {
-      badgeHtml = `<span class="badge badge-yellow">${rawStr}</span>`;
-    } else if (lower.includes('paid')) {
-      badgeHtml = `<span class="badge badge-green">${rawStr}</span>`;
-    } else {
-      badgeHtml = `<span class="badge badge-orange">${rawStr}</span>`;
+  // Unified Payment Status Normalizer
+  function getPaymentStatus(row) {
+    let raw = (getVal(row, "Latest Due Interest Paid Status") || getVal(row, "Payment Status") || getVal(row, "Status") || "").trim();
+    let lower = raw.toLowerCase();
+    if (lower === 'paid' || (lower.includes('paid') && !lower.includes('unpaid') && !lower.includes('pending') && !lower.includes('due'))) {
+      return 'Paid';
     }
-
-    if (hasMaybe) {
-      badgeHtml += ` <span class="badge badge-orange">Maybe</span>`;
+    if (lower.includes('papa shop') || lower.includes('papa')) {
+      return 'Papa Shop';
     }
-
-    return badgeHtml;
+    if (lower.includes('pend') || lower.includes('due') || lower.includes('unpaid') || lower.includes('overdue')) {
+      return 'Pending';
+    }
+    return raw || 'Paid';
   }
 
-  // Single Firm WA Link
+  // Unified Status Badge Renderer
+  function getStatusBadge(status) {
+    let st = (status || '').toString().trim();
+    let lower = st.toLowerCase();
+    if (lower === 'paid' || (lower.includes('paid') && !lower.includes('unpaid') && !lower.includes('pending') && !lower.includes('due'))) {
+      return `<span class="badge badge-green">Paid</span>`;
+    }
+    if (lower.includes('papa shop') || lower.includes('papa')) {
+      return `<span class="badge badge-blue">Papa Shop</span>`;
+    }
+    return `<span class="badge badge-orange">${st || 'Pending'}</span>`;
+  }
+
+  // Click Handler for Single-Firm Row WhatsApp Buttons (Itemized Tables)
+  function handleRowWAClick(event, firmName, status) {
+    let st = (status || '').toString().trim().toLowerCase();
+    if (st === 'paid' || (st.includes('paid') && !st.includes('pend') && !st.includes('due') && !st.includes('unpaid'))) {
+      alert(`Note: "${firmName}" is already marked as Paid up to date. No payment reminder needed!`);
+      event.preventDefault();
+      return false;
+    }
+    return true;
+  }
+
+  // Single Firm WA Link Construction with Itemization for Multi-Family Contributions
   function buildHinglishWALink(brokerName, firmName, amountStr, phoneStr) {
     let bName = formatBrokerWithBhai(brokerName);
     let amt = amountStr && amountStr !== 'N/A' ? `*${amountStr}*` : 'interest payment';
@@ -805,41 +797,81 @@
     }
   }
 
-  // Single Firm WA Click Safety Prompt
+  // Single Firm WA Click Safety Prompt (Firm View Card - Handles Multi-Entry Itemization)
   function handleSingleFirmWAClick(event) {
     const selectedFirm = document.getElementById('party-select').value;
     const matchingRows = businessRecords.filter(r => getVal(r, "Money Lent To") === selectedFirm);
-    if (matchingRows.length > 0) {
-      let statuses = matchingRows.map(r => getVal(r, "Latest Due Interest Paid Status")).filter(Boolean);
-      let aggStatus = statuses.join(' ').toLowerCase();
-      if (aggStatus.includes('paid') && !aggStatus.includes('pend') && !aggStatus.includes('due') && !aggStatus.includes('unpaid')) {
-        if (!confirm(`Note: ${selectedFirm} is already marked as Paid.\nDo you still want to open the WhatsApp reminder draft?`)) {
-          event.preventDefault();
-          return false;
-        }
-      }
+    
+    if (matchingRows.length === 0) return true;
+
+    let pendingRows = matchingRows.filter(r => getPaymentStatus(r) !== 'Paid');
+
+    if (pendingRows.length === 0) {
+      alert(`Note: "${selectedFirm}" is already marked as Paid up to date. No payment reminder needed!`);
+      event.preventDefault();
+      return false;
     }
-    return true;
+
+    const firstRow = matchingRows[0];
+    const rawBroker = getVal(firstRow, "Broker");
+    const rawPhone = getVal(firstRow, "Broker Phone");
+    let bName = formatBrokerWithBhai(rawBroker);
+
+    let cleanPhone = (rawPhone || '').toString().replace(/[^0-9]/g, '');
+    if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
+
+    let msg = "";
+
+    if (matchingRows.length === 1) {
+      // Single loan entry
+      let nextDueAmt = cleanNum(getVal(matchingRows[0], "Next due amount"));
+      let amtStr = nextDueAmt > 0 ? `*${formatINR(nextDueAmt)}*` : 'interest payment';
+      msg = `Hi ${bName}\nAaj ${selectedFirm} ka interest payment ${amtStr} due hai.\nRequest you to kindly check and get it processed.\nThanks`;
+    } else {
+      // Multi-loan entry (e.g., Gunjan + Suresh HUF)
+      let items = [];
+      let totalSum = 0;
+
+      matchingRows.forEach(r => {
+        let family = getVal(r, "Family Member") || "Family";
+        let nextDueAmt = cleanNum(getVal(r, "Next due amount"));
+        let amtStr = nextDueAmt > 0 ? `*${formatINR(nextDueAmt)}*` : "scheduled interest amount";
+        totalSum += nextDueAmt;
+        items.push(`• ${family}: ${amtStr}`);
+      });
+
+      let itemsListStr = items.join('\n');
+      let totalFormattedStr = totalSum > 0 ? `\n\nTotal Due: *${formatINR(totalSum)}*` : '';
+      msg = `Hi ${bName}\nAaj ${selectedFirm} ke niche diye gaye interest payments due hain:\n\n${itemsListStr}${totalFormattedStr}\n\nRequest you to kindly check and get them processed.\nThanks`;
+    }
+
+    let waUrl = cleanPhone 
+      ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+
+    window.open(waUrl, '_blank');
+    event.preventDefault();
+    return false;
   }
 
-  // Consolidated Broker WA Link (FILTERED: ONLY PENDING FIRMS)
-  function buildConsolidatedBrokerWALink(brokerName) {
-    if (!brokerName || brokerName === 'N/A') return 'javascript:void(0);';
+  // Consolidated Broker WA Click Handler (Robust Dues Check)
+  function handleConsolidatedWAClick(event, brokerName) {
+    if (!brokerName || brokerName === 'N/A') {
+      event.preventDefault();
+      return false;
+    }
 
     let matching = businessRecords.filter(r => {
       let b = getVal(r, "Broker");
       return b && b.trim().toLowerCase() === brokerName.trim().toLowerCase();
     });
 
-    if (matching.length === 0) return 'javascript:void(0);';
-
-    let pendingFirms = matching.filter(r => {
-      let st = getVal(r, "Latest Due Interest Paid Status").trim().toLowerCase();
-      return st !== 'paid';
-    });
+    let pendingFirms = matching.filter(r => getPaymentStatus(r) !== 'Paid');
 
     if (pendingFirms.length === 0) {
-      return `javascript:alert("Great news! All payments under ${brokerName} are already paid up to date.");`;
+      alert(`Great news! All payments under ${brokerName} are already paid up to date.`);
+      event.preventDefault();
+      return false;
     }
 
     let bName = formatBrokerWithBhai(brokerName);
@@ -865,11 +897,13 @@
     let totalFormattedStr = totalSum > 0 ? `\n\nTotal Due: *${formatINR(totalSum)}*` : '';
     let msg = `Hi ${bName}\nAaj niche diye gaye interest payments due hain:\n\n${itemsListStr}${totalFormattedStr}\n\nRequest you to kindly check and get them processed.\nThanks`;
 
-    if (cleanPhone) {
-      return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
-    } else {
-      return `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
-    }
+    let waUrl = cleanPhone 
+      ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+
+    window.open(waUrl, '_blank');
+    event.preventDefault();
+    return false;
   }
 
   function processTaxMatrixRows() {
@@ -1113,9 +1147,7 @@
     let totalRateNum = chRateNum + caRateNum;
     let formattedTotalRate = (Math.round(totalRateNum * 100) / 100) + '%';
 
-    let statuses = matchingRows.map(r => getVal(r, "Latest Due Interest Paid Status")).filter(Boolean);
-    let uniqueStatuses = [...new Set(statuses)];
-    let aggregatedStatus = uniqueStatuses.join(' and ');
+    let paymentStatus = getPaymentStatus(firstRow);
 
     let fullChequeTotal = matchingRows.reduce((sum, r) => sum + cleanNum(getVal(r, "Full Yr 365 Days Int (Cheque)")), 0);
     let fullCashTotal = matchingRows.reduce((sum, r) => sum + cleanNum(getVal(r, "Full Yr 365 Days Int (Cash)")), 0);
@@ -1130,7 +1162,7 @@
     document.getElementById('info-monthly-rate-total').innerText = formattedTotalRate;
     document.getElementById('info-frequency').innerText = getVal(firstRow, "Interest Due Frequency") || 'N/A';
     document.getElementById('info-tds').innerText = isTdsYes ? 'Yes (10%)' : 'No';
-    document.getElementById('info-payment-status').innerText = aggregatedStatus || 'N/A';
+    document.getElementById('info-payment-status').innerHTML = getStatusBadge(paymentStatus);
 
     document.getElementById('info-full-cheque').innerText = formatINR(fullChequeTotal);
     document.getElementById('info-full-cash').innerText = formatINR(fullCashTotal);
@@ -1139,8 +1171,10 @@
     let nextPaymentDate = getVal(firstRow, "Next payment date") || 'N/A';
     let daysBeforeRaw = getVal(firstRow, "Days before next payment");
     let daysBeforeNum = cleanNum(daysBeforeRaw);
-    let nextDueAmount = cleanNum(getVal(firstRow, "Next due amount"));
-    let formattedDueAmt = getVal(firstRow, "Next due amount") ? formatINR(nextDueAmount) : 'N/A';
+    
+    // Sum next due amount across all entries for this firm
+    let nextDueAmountSum = matchingRows.reduce((sum, r) => sum + cleanNum(getVal(r, "Next due amount")), 0);
+    let formattedDueAmt = nextDueAmountSum > 0 ? formatINR(nextDueAmountSum) : 'N/A';
 
     document.getElementById('info-next-payment').innerText = nextPaymentDate;
     document.getElementById('info-next-due-amount').innerText = formattedDueAmt;
@@ -1165,17 +1199,16 @@
     // Count pending firms for this broker
     let pendingCount = businessRecords.filter(r => {
       let b = getVal(r, "Broker");
-      let st = getVal(r, "Latest Due Interest Paid Status").trim().toLowerCase();
-      return b && b.trim().toLowerCase() === rawBroker.trim().toLowerCase() && st !== 'paid';
+      return b && b.trim().toLowerCase() === rawBroker.trim().toLowerCase() && getPaymentStatus(r) !== 'Paid';
     }).length;
 
     // Update WhatsApp Button Links & Labels
     const waBtn = document.getElementById('firm-wa-btn');
-    waBtn.href = buildHinglishWALink(rawBroker, selectedFirm, formattedDueAmt, rawPhone);
+    waBtn.onclick = function(e) { return handleSingleFirmWAClick(e); };
 
     const consolidatedWaBtn = document.getElementById('broker-consolidated-wa-btn');
     consolidatedWaBtn.innerText = `📲 WA Reminder (All Firms under Broker - ${pendingCount} Due)`;
-    consolidatedWaBtn.href = buildConsolidatedBrokerWALink(rawBroker);
+    consolidatedWaBtn.onclick = function(e) { return handleConsolidatedWAClick(e, rawBroker); };
 
     document.getElementById('details-card').classList.remove('hidden');
     updateCentering();
@@ -1245,8 +1278,8 @@
       let frequencyKey = getVal(record, "Interest Due Frequency") || 'N/A';
       frequencyMap[frequencyKey] = (frequencyMap[frequencyKey] || 0) + principal;
 
-      let statusKey = getVal(record, "Latest Due Interest Paid Status") || 'N/A';
-      statusMap[statusKey] = (statusMap[statusKey] || 0) + principal;
+      let pStatus = getPaymentStatus(record);
+      statusMap[pStatus] = (statusMap[pStatus] || 0) + principal;
 
       let familyMember = getVal(record, "Family Member") || "Unknown";
       let chRate = parseRatePercent(getVal(record, "Monthly IR (Cheque)"));
@@ -1263,9 +1296,7 @@
       let formattedDueAmt = nextDueAmount > 0 ? formatINR(nextDueAmount) : 'N/A';
       let broker = getVal(record, "Broker") || 'N/A';
       let brokerPhone = getVal(record, "Broker Phone");
-      let rawStatus = getVal(record, "Latest Due Interest Paid Status") || "Paid";
 
-      let statusBadge = getStatusBadge(rawStatus, deployed === 'maybe');
       let waLink = buildHinglishWALink(broker, firmName, formattedDueAmt, brokerPhone);
 
       allFirmsRows.push({
@@ -1279,10 +1310,10 @@
         daysBefore: daysBeforeNum,
         daysBeforeBadge,
         nextDueAmount,
-        status: rawStatus,
-        statusBadge,
+        paymentStatus: pStatus,
         broker,
-        waLink
+        waLink,
+        rawRecord: record
       });
     });
 
@@ -1338,18 +1369,16 @@
       
       let pendingCount = businessRecords.filter(r => {
         let b = getVal(r, "Broker");
-        let st = getVal(r, "Latest Due Interest Paid Status").trim().toLowerCase();
-        return b && b.trim().toLowerCase() === label.trim().toLowerCase() && st !== 'paid';
+        return b && b.trim().toLowerCase() === label.trim().toLowerCase() && getPaymentStatus(r) !== 'Paid';
       }).length;
 
-      let waConsolidatedLink = buildConsolidatedBrokerWALink(label);
       let row = document.createElement('div');
       row.className = 'broker-grid-row';
       row.innerHTML = `
         <span class="col-label">${label}</span>
         <span class="col-val">${formatINR(amount)}</span>
         <span class="col-pct">${pct.toFixed(1)}%</span>
-        <span class="col-btn"><a href="${waConsolidatedLink}" target="_blank" class="btn-wa-sm no-print">📲 WA (${pendingCount} Due)</a></span>
+        <span class="col-btn"><a href="#" onclick="return handleConsolidatedWAClick(event, '${label.replace(/'/g, "\\'")}')" class="btn-wa-sm no-print">📲 WA (${pendingCount} Due)</a></span>
       `;
       container.appendChild(row);
     });
@@ -1369,9 +1398,10 @@
 
     entries.forEach(([label, amount]) => {
       let pct = groupTotal > 0 ? (amount / groupTotal * 100) : 0;
+      let badgeHtml = getStatusBadge(label);
       let row = document.createElement('div');
       row.className = 'summary-grid-row-3col';
-      row.innerHTML = `<span class="col-label">${label}</span><span class="col-val">${formatINR(amount)}</span><span class="col-pct">${pct.toFixed(1)}%</span>`;
+      row.innerHTML = `<span class="col-label">${badgeHtml}</span><span class="col-val">${formatINR(amount)}</span><span class="col-pct">${pct.toFixed(1)}%</span>`;
       container.appendChild(row);
     });
 
@@ -1382,22 +1412,18 @@
   }
 
   function renderAllFirmsTable() {
-    const filterVal = document.getElementById('af-status-filter') ? document.getElementById('af-status-filter').value : 'ALL';
-    
-    let filteredRows = allFirmsRows.filter(row => {
-      let st = (row.status || '').toString().toLowerCase();
-      if (filterVal === 'PENDING') {
-        return st.includes('pend') || st.includes('due') || st.includes('unpaid') || st.includes('overdue');
-      } else if (filterVal === 'PAID') {
-        return st.includes('paid') && !st.includes('unpaid');
-      } else if (filterVal === 'PAPA SHOP') {
-        return st.includes('papa') || st.includes('shop');
-      }
-      return true;
-    });
-
     const thEl = document.querySelector('#all-firms-table thead th[data-key="' + allFirmsSort.key + '"]');
     const type = thEl ? thEl.getAttribute('data-type') : 'number';
+    
+    let filterVal = document.getElementById('status-filter')?.value || 'All';
+    
+    let filteredRows = allFirmsRows.filter(row => {
+      if (filterVal === 'All') return true;
+      let st = row.paymentStatus;
+      if (filterVal === 'Pending') return st !== 'Paid' && st !== 'Papa Shop';
+      return st === filterVal;
+    });
+
     const sorted = genericSort(filteredRows, allFirmsSort.key, type, allFirmsSort.dir);
 
     const tbody = document.getElementById('all-firms-table-body');
@@ -1405,6 +1431,8 @@
 
     sorted.forEach(row => {
       let tr = document.createElement('tr');
+      let statusBadge = getStatusBadge(row.paymentStatus);
+      let safeFirm = row.firmName.replace(/'/g, "\\'");
       tr.innerHTML = `
         <td style="font-weight:700;font-family:'Inter',sans-serif;">${row.firmName}</td>
         <td>${row.familyMember}</td>
@@ -1415,8 +1443,8 @@
         <td>${row.nextPayment}</td>
         <td>${row.daysBeforeBadge}</td>
         <td>${formatINR(row.nextDueAmount)}</td>
-        <td>${row.statusBadge}</td>
-        <td>${row.broker} <a href="${row.waLink}" target="_blank" class="btn-wa-sm no-print">📲 WA</a></td>
+        <td>${statusBadge}</td>
+        <td>${row.broker} <a href="${row.waLink}" target="_blank" onclick="return handleRowWAClick(event, '${safeFirm}', '${row.paymentStatus}')" class="btn-wa-sm no-print">📲 WA</a></td>
       `;
       tbody.appendChild(tr);
     });
@@ -1551,7 +1579,7 @@
         let curCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Income (Cash)"));
         let curTotal = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Int Income (Total)"));
 
-        let pStatus = getVal(record, "Latest Due Interest Paid Status");
+        let pStatus = getPaymentStatus(record);
         let brokerVal = getVal(record, "Broker") || "N/A";
         let brokerPhone = getVal(record, "Broker Phone");
         let nextDueAmt = cleanNum(getVal(record, "Next due amount"));
@@ -1604,7 +1632,11 @@
       Object.values(firmGroupMap).forEach(group => {
         let uniqueStatuses = [...new Set(group.statuses)];
         let aggStatus = uniqueStatuses.join(' and ') || 'Paid';
-        let statusBadge = getStatusBadge(aggStatus, group.hasMaybe);
+        let statusBadge = getStatusBadge(aggStatus);
+
+        if (group.hasMaybe) {
+          statusBadge += ` <span class="badge badge-orange">Maybe</span>`;
+        }
 
         let uniqueBrokers = [...new Set(group.brokers)];
         let aggBroker = uniqueBrokers.join(' & ') || 'N/A';
@@ -1662,8 +1694,12 @@
           totalCurCash += curCash;
           totalCurYearSum += curTotal;
 
-          let pStatus = getVal(record, "Latest Due Interest Paid Status") || 'Paid';
-          let statusBadge = getStatusBadge(pStatus, deployed === 'maybe');
+          let pStatus = getPaymentStatus(record);
+          let statusBadge = getStatusBadge(pStatus);
+
+          if (deployed === 'maybe') {
+            statusBadge += ` <span class="badge badge-orange">Maybe</span>`;
+          }
 
           let brokerVal = getVal(record, "Broker") || "N/A";
           let brokerPhone = getVal(record, "Broker Phone");
@@ -1738,6 +1774,7 @@
 
     sorted.forEach(row => {
       let tr = document.createElement('tr');
+      let safeFirm = row.firmName.replace(/'/g, "\\'");
       tr.innerHTML = `
         <td style="font-weight:700;font-family:'Inter',sans-serif;">${row.firmName}</td>
         <td>${formatINR(row.chequeAmt)}</td>
@@ -1747,7 +1784,7 @@
         <td>${row.fyLabel}</td>
         <td>${row.curLabel}</td>
         <td>${row.statusBadge}</td>
-        <td>${row.broker} <a href="${row.waLink}" target="_blank" class="btn-wa-sm no-print">📲 WA</a></td>
+        <td>${row.broker} <a href="${row.waLink}" target="_blank" onclick="return handleRowWAClick(event, '${safeFirm}', '${row.status}')" class="btn-wa-sm no-print">📲 WA</a></td>
       `;
       tbody.appendChild(tr);
     });
