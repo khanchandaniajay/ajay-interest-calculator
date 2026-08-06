@@ -203,7 +203,6 @@
   }
   .btn-clear:active{background:var(--red-dim);}
 
-  /* mobile table -> stacked cards for family view */
   .table-responsive{overflow-x:auto;border-radius:var(--radius-sm);border:1px solid var(--line);margin-top:4px;}
   .table-full-bleed{
     width:100vw;position:relative;left:50%;right:50%;margin-left:-50vw;margin-right:-50vw;
@@ -741,6 +740,11 @@
     return trimmed + ' bhai';
   }
 
+  function checkIsTdsEnabled(row) {
+    const tdsField = getVal(row, "Does Party Deduct TDS").toLowerCase();
+    return (tdsField === 'yes' || tdsField === 'y' || tdsField === '1');
+  }
+
   // Unified Payment Status Normalizer
   function getPaymentStatus(row) {
     let raw = (getVal(row, "Latest Due Interest Paid Status") || getVal(row, "Payment Status") || getVal(row, "Status") || "").trim();
@@ -781,11 +785,11 @@
     return true;
   }
 
-  // Single Firm WA Link Construction with Itemization for Multi-Family Contributions
+  // Single Firm WA Link Construction
   function buildHinglishWALink(brokerName, firmName, amountStr, phoneStr) {
     let bName = formatBrokerWithBhai(brokerName);
     let amt = amountStr && amountStr !== 'N/A' ? `*${amountStr}*` : 'interest payment';
-    let msg = `Hi ${bName}\nAaj ${firmName} ka interest payment ${amt} due hai.\nRequest you to kindly check and get it processed.\nThanks`;
+    let msg = `Hi ${bName}\nAaj ${firmName} ka interest payment ${amt} due hai.\nRequest you to kindly check and get it processed.\nThanks.`;
     
     let cleanPhone = (phoneStr || '').toString().replace(/[^0-9]/g, '');
     if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
@@ -797,7 +801,7 @@
     }
   }
 
-  // Single Firm WA Click Safety Prompt (Firm View Card - Handles Multi-Entry Itemization)
+  // Single Firm WA Click Safety Prompt (Handles Gross/TDS/Net formatting)
   function handleSingleFirmWAClick(event) {
     const selectedFirm = document.getElementById('party-select').value;
     const matchingRows = businessRecords.filter(r => getVal(r, "Money Lent To") === selectedFirm);
@@ -823,26 +827,50 @@
     let msg = "";
 
     if (matchingRows.length === 1) {
-      // Single loan entry
-      let nextDueAmt = cleanNum(getVal(matchingRows[0], "Next due amount"));
-      let amtStr = nextDueAmt > 0 ? `*${formatINR(nextDueAmt)}*` : 'interest payment';
-      msg = `Hi ${bName}\nAaj ${selectedFirm} ka interest payment ${amtStr} due hai.\nRequest you to kindly check and get it processed.\nThanks`;
+      let row = matchingRows[0];
+      let dueAmt = cleanNum(getVal(row, "Next due amount"));
+      let isTds = checkIsTdsEnabled(row);
+
+      if (isTds) {
+        let tdsAmt = Math.round(dueAmt * 0.10);
+        let netAmt = dueAmt - tdsAmt;
+        msg = `Hi ${bName}\n*${selectedFirm}*\nInterest payment due hai:\n\nDue: *${formatINR(dueAmt)}*\nTDS: *${formatINR(tdsAmt)}*\nNet: *${formatINR(netAmt)}*\n\nRequest you to kindly check and get it processed.\nThanks.`;
+      } else {
+        msg = `Hi ${bName}\nAaj ${selectedFirm} ka interest payment *${formatINR(dueAmt)}* due hai.\nRequest you to kindly check and get it processed.\nThanks.`;
+      }
     } else {
-      // Multi-loan entry (e.g., Gunjan + Suresh HUF)
+      // Multi-loan entry for single firm
       let items = [];
-      let totalSum = 0;
+      let totalDue = 0, totalTds = 0, totalNet = 0;
+      let hasAnyTds = false;
 
       matchingRows.forEach(r => {
         let family = getVal(r, "Family Member") || "Family";
-        let nextDueAmt = cleanNum(getVal(r, "Next due amount"));
-        let amtStr = nextDueAmt > 0 ? `*${formatINR(nextDueAmt)}*` : "scheduled interest amount";
-        totalSum += nextDueAmt;
-        items.push(`• ${family}: ${amtStr}`);
+        let dueAmt = cleanNum(getVal(r, "Next due amount"));
+        let isTds = checkIsTdsEnabled(r);
+
+        if (isTds) {
+          hasAnyTds = true;
+          let tdsAmt = Math.round(dueAmt * 0.10);
+          let netAmt = dueAmt - tdsAmt;
+          totalDue += dueAmt; totalTds += tdsAmt; totalNet += netAmt;
+          items.push(`• *${family}:*\n  Due: *${formatINR(dueAmt)}*\n  TDS: *${formatINR(tdsAmt)}*\n  Net: *${formatINR(netAmt)}*`);
+        } else {
+          totalDue += dueAmt; totalNet += dueAmt;
+          items.push(`• *${family}:*\n  Due: *${formatINR(dueAmt)}*`);
+        }
       });
 
-      let itemsListStr = items.join('\n');
-      let totalFormattedStr = totalSum > 0 ? `\n\nTotal Due: *${formatINR(totalSum)}*` : '';
-      msg = `Hi ${bName}\nAaj ${selectedFirm} ke niche diye gaye interest payments due hain:\n\n${itemsListStr}${totalFormattedStr}\n\nRequest you to kindly check and get them processed.\nThanks`;
+      let itemsListStr = items.join('\n\n');
+      let summaryBlock = "";
+
+      if (hasAnyTds) {
+        summaryBlock = `\n\n*Total Collection Summary:*\nDue: *${formatINR(totalDue)}*\nTDS: *${formatINR(totalTds)}*\nNet: *${formatINR(totalNet)}*`;
+      } else {
+        summaryBlock = `\n\n*Total Due:* *${formatINR(totalDue)}*`;
+      }
+
+      msg = `Hi ${bName}\n*${selectedFirm}*\nNiche diye gaye interest payments due hain:\n\n${itemsListStr}${summaryBlock}\n\nRequest you to kindly check and get them processed.\nThanks.`;
     }
 
     let waUrl = cleanPhone 
@@ -854,7 +882,7 @@
     return false;
   }
 
-  // Consolidated Broker WA Click Handler (Robust Dues Check)
+  // Consolidated Broker WA Click Handler
   function handleConsolidatedWAClick(event, brokerName) {
     if (!brokerName || brokerName === 'N/A') {
       event.preventDefault();
@@ -880,22 +908,49 @@
     let cleanPhone = (phoneStr || '').toString().replace(/[^0-9]/g, '');
     if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
 
-    let items = [];
-    let totalSum = 0;
-
+    // Group pending rows by firm name
+    let firmGroupMap = {};
     pendingFirms.forEach(r => {
       let firm = getVal(r, "Money Lent To");
-      let family = getVal(r, "Family Member") || "Family";
-      let nextDueAmt = cleanNum(getVal(r, "Next due amount"));
-      let amtStr = nextDueAmt > 0 ? `*${formatINR(nextDueAmt)}*` : "scheduled interest amount";
-      
-      totalSum += nextDueAmt;
-      items.push(`• ${firm} (${family}): ${amtStr}`);
+      if (!firmGroupMap[firm]) firmGroupMap[firm] = [];
+      firmGroupMap[firm].push(r);
     });
 
-    let itemsListStr = items.join('\n');
-    let totalFormattedStr = totalSum > 0 ? `\n\nTotal Due: *${formatINR(totalSum)}*` : '';
-    let msg = `Hi ${bName}\nAaj niche diye gaye interest payments due hain:\n\n${itemsListStr}${totalFormattedStr}\n\nRequest you to kindly check and get them processed.\nThanks`;
+    let firmBlocks = [];
+    let totalDue = 0, totalTds = 0, totalNet = 0;
+    let hasAnyTdsInBroker = false;
+
+    Object.entries(firmGroupMap).forEach(([firmName, rows]) => {
+      let subItems = [];
+      rows.forEach(r => {
+        let family = getVal(r, "Family Member") || "Family";
+        let dueAmt = cleanNum(getVal(r, "Next due amount"));
+        let isTds = checkIsTdsEnabled(r);
+
+        if (isTds) {
+          hasAnyTdsInBroker = true;
+          let tdsAmt = Math.round(dueAmt * 0.10);
+          let netAmt = dueAmt - tdsAmt;
+          totalDue += dueAmt; totalTds += tdsAmt; totalNet += netAmt;
+          subItems.push(`• ${family}:\n  Due: *${formatINR(dueAmt)}*\n  TDS: *${formatINR(tdsAmt)}*\n  Net: *${formatINR(netAmt)}*`);
+        } else {
+          totalDue += dueAmt; totalNet += dueAmt;
+          subItems.push(`• ${family}:\n  Due: *${formatINR(dueAmt)}*`);
+        }
+      });
+      firmBlocks.push(`*${firmName}*\n` + subItems.join('\n'));
+    });
+
+    let mainContentStr = firmBlocks.join('\n\n');
+    let summaryBlock = "";
+
+    if (hasAnyTdsInBroker) {
+      summaryBlock = `\n\n*Total Collection Summary:*\nDue: *${formatINR(totalDue)}*\nTDS: *${formatINR(totalTds)}*\nNet: *${formatINR(totalNet)}*`;
+    } else {
+      summaryBlock = `\n\n*Total Due:* *${formatINR(totalDue)}*`;
+    }
+
+    let msg = `Hi ${bName}\nAaj niche diye gaye interest payments due hain:\n\n${mainContentStr}${summaryBlock}\n\nRequest you to kindly check and get them processed.\nThanks.`;
 
     let waUrl = cleanPhone 
       ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`
@@ -1172,7 +1227,6 @@
     let daysBeforeRaw = getVal(firstRow, "Days before next payment");
     let daysBeforeNum = cleanNum(daysBeforeRaw);
     
-    // Sum next due amount across all entries for this firm
     let nextDueAmountSum = matchingRows.reduce((sum, r) => sum + cleanNum(getVal(r, "Next due amount")), 0);
     let formattedDueAmt = nextDueAmountSum > 0 ? formatINR(nextDueAmountSum) : 'N/A';
 
@@ -1196,13 +1250,11 @@
       daysBeforeEl.classList.remove('due-soon-value');
     }
 
-    // Count pending firms for this broker
     let pendingCount = businessRecords.filter(r => {
       let b = getVal(r, "Broker");
       return b && b.trim().toLowerCase() === rawBroker.trim().toLowerCase() && getPaymentStatus(r) !== 'Paid';
     }).length;
 
-    // Update WhatsApp Button Links & Labels
     const waBtn = document.getElementById('firm-wa-btn');
     waBtn.onclick = function(e) { return handleSingleFirmWAClick(e); };
 
@@ -1259,8 +1311,7 @@
       let fyCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cash)"));
       let fyTotal = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Total)"));
 
-      const tdsField = getVal(record, "Does Party Deduct TDS").toLowerCase();
-      const isTdsEnabled = (tdsField === 'yes' || tdsField === 'y' || tdsField === '1');
+      const isTdsEnabled = checkIsTdsEnabled(record);
       let fyTds = (deployed === 'maybe' || !isTdsEnabled) ? 0 : (fyCheque * 0.10);
 
       annualCheque += fyCheque;
@@ -1356,7 +1407,6 @@
     }, 150);
   }
 
-  // Broker Breakdown with Fixed Mobile Spacing & Active Dues Count Badge
   function renderBrokerGroupBreakdown(containerId, dataMap) {
     const container = document.getElementById(containerId);
     container.innerHTML = "";
@@ -1518,8 +1568,7 @@
       let cashMonthlyRate = cleanNum(cashRateStr);
       if (!cashRateStr.includes('%') && cashMonthlyRate > 0.15) cashMonthlyRate /= 100;
 
-      const tdsField = getVal(row, "Does Party Deduct TDS").toLowerCase();
-      const isTdsEnabled = (tdsField === 'yes' || tdsField === 'y' || tdsField === '1');
+      const isTdsEnabled = checkIsTdsEnabled(row);
 
       let chequeGross = principalAmount * chequeMonthlyRate / 30 * finalDays;
       let chequeTds = isTdsEnabled ? (chequeGross * 0.10) : 0;
