@@ -676,8 +676,9 @@
 </div>
 
 <script>
-  const SHEET_DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTE8Ga_ayS7dMQ3novYHY9WtJFqaIPIqopKjz6s9qT5wwsWfPGXyBhe0tuEn4eKkJz1DjK1gVbYXvgN/pub?gid=81907815&single=true&output=csv&_t=" + new Date().getTime();
-  const TAX_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTE8Ga_ayS7dMQ3novYHY9WtJFqaIPIqopKjz6s9qT5wwsWfPGXyBhe0tuEn4eKkJz1DjK1gVbYXvgN/pub?gid=481574565&single=true&output=csv&_t=" + new Date().getTime();
+  // Direct Export URL bypassing published CDN cache
+  const SHEET_DATA_URL = "https://docs.google.com/spreadsheets/d/1keZRwZsEDX6jnp3ktmHs9e9vSQght2d9c7apu2s5hPo/export?format=csv&gid=81907815&_t=" + Date.now();
+  const TAX_SHEET_URL = "https://docs.google.com/spreadsheets/d/1keZRwZsEDX6jnp3ktmHs9e9vSQght2d9c7apu2s5hPo/export?format=csv&gid=481574565&_t=" + Date.now();
 
   const ALL_FIRMS_VALUE = "All Firms (Consolidated)";
 
@@ -733,24 +734,46 @@
     });
   };
 
-  // ================= DYNAMIC CALCULATION HELPERS =================
-  function isLeapYear(yearStrOrObj) {
-    let yr = yearStrOrObj ? new Date(yearStrOrObj).getFullYear() : new Date().getFullYear();
-    if (isNaN(yr)) yr = new Date().getFullYear();
+  // ================= FORWARD PREPAID CALCULATION ENGINE =================
+  function parseFlexibleDate(dateInput) {
+    if (!dateInput) return null;
+    if (dateInput instanceof Date) return isNaN(dateInput.getTime()) ? null : dateInput;
+    let str = dateInput.toString().trim();
+    if (!str) return null;
+
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+      let parts = str.split('-');
+      return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    }
+
+    const mNames = {"jan":0,"feb":1,"mar":2,"apr":3,"may":4,"jun":5,"jul":6,"aug":7,"sep":8,"oct":9,"nov":10,"dec":11};
+    let matchNamed = str.match(/^(\d{1,2})[-/ ]([a-zA-Z]{3})[-/ ](\d{4})/);
+    if (matchNamed) {
+      let day = parseInt(matchNamed[1], 10);
+      let month = mNames[matchNamed[2].toLowerCase()];
+      let year = parseInt(matchNamed[3], 10);
+      if (month !== undefined) return new Date(year, month, day);
+    }
+
+    let matchNum = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+    if (matchNum) {
+      let day = parseInt(matchNum[1], 10);
+      let month = parseInt(matchNum[2], 10) - 1;
+      let year = parseInt(matchNum[3], 10);
+      return new Date(year, month, day);
+    }
+
+    let std = new Date(str);
+    return isNaN(std.getTime()) ? null : std;
+  }
+
+  function isLeapYear(dateObj) {
+    let yr = dateObj ? dateObj.getFullYear() : new Date().getFullYear();
     return (yr % 4 === 0 && yr % 100 !== 0) || (yr % 400 === 0);
   }
 
-  function getYearDays(dateRef) {
-    return isLeapYear(dateRef) ? 366 : 365;
-  }
-
-  function getDaysBetween(sStr, eStr) {
-    if (!sStr || !eStr || sStr === 'N/A' || eStr === 'N/A') return 0;
-    let s = new Date(sStr);
-    let e = new Date(eStr);
-    if (isNaN(s.getTime()) || isNaN(e.getTime())) return 0;
-    let diff = Math.round((e - s) / (1000 * 60 * 60 * 24));
-    return diff > 0 ? diff : 0;
+  function getYearDays(dateObj) {
+    return isLeapYear(dateObj) ? 366 : 365;
   }
 
   function computeDynamicRowValues(row) {
@@ -764,9 +787,22 @@
     
     let totalRate = chRate + caRate;
 
-    let sDate = getVal(row, "Start Date (Current FY)");
-    let eDate = getVal(row, "Next payment date");
-    let days = getDaysBetween(sDate, eDate);
+    let paymentDateObj = parseFlexibleDate(getVal(row, "Next payment date"));
+    let freqStr = getVal(row, "Interest Due Frequency").toLowerCase();
+    
+    let monthsToAdd = 1;
+    if (freqStr.includes('2 month')) monthsToAdd = 2;
+    else if (freqStr.includes('3 month') || freqStr.includes('quarter')) monthsToAdd = 3;
+    else if (freqStr.includes('6 month') || freqStr.includes('half')) monthsToAdd = 6;
+    else if (freqStr.includes('12 month') || freqStr.includes('year') || freqStr.includes('annual')) monthsToAdd = 12;
+
+    let sDateObj = paymentDateObj ? new Date(paymentDateObj) : parseFlexibleDate(getVal(row, "Start Date (Current FY)"));
+    let eDateObj = paymentDateObj ? new Date(paymentDateObj.getFullYear(), paymentDateObj.getMonth() + monthsToAdd, paymentDateObj.getDate()) : null;
+
+    let days = 0;
+    if (sDateObj && eDateObj) {
+      days = Math.round((eDateObj - sDateObj) / (1000 * 60 * 60 * 24));
+    }
 
     let dueAmt = 0;
     if (days > 0 && totalRate > 0) {
@@ -779,12 +815,12 @@
     let tdsAmt = isTds ? Math.round(dueAmt * 0.10) : 0;
     let netAmt = dueAmt - tdsAmt;
 
-    let yrDays = getYearDays(sDate || eDate);
+    let yrDays = getYearDays(sDateObj || paymentDateObj);
     let fyCheque = Math.round(p * (chRate / 30) * yrDays);
     let fyCash = Math.round(p * (caRate / 30) * yrDays);
     let fyTotal = fyCheque + fyCash;
 
-    return { p, chRate, caRate, totalRate, days, dueAmt, isTds, tdsAmt, netAmt, yrDays, fyCheque, fyCash, fyTotal, sDate, eDate };
+    return { p, chRate, caRate, totalRate, days, dueAmt, isTds, tdsAmt, netAmt, yrDays, fyCheque, fyCash, fyTotal };
   }
 
   function formatBrokerWithBhai(name) {
@@ -1200,7 +1236,6 @@
 
     const firstRow = matchingRows[0];
     const rawBroker = getVal(firstRow, "Broker");
-    const rawPhone = getVal(firstRow, "Broker Phone");
     const isTdsYes = checkIsTdsEnabled(firstRow);
 
     let familyMap = {};
