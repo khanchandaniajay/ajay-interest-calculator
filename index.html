@@ -733,6 +733,60 @@
     });
   };
 
+  // ================= DYNAMIC CALCULATION HELPERS =================
+  function isLeapYear(yearStrOrObj) {
+    let yr = yearStrOrObj ? new Date(yearStrOrObj).getFullYear() : new Date().getFullYear();
+    if (isNaN(yr)) yr = new Date().getFullYear();
+    return (yr % 4 === 0 && yr % 100 !== 0) || (yr % 400 === 0);
+  }
+
+  function getYearDays(dateRef) {
+    return isLeapYear(dateRef) ? 366 : 365;
+  }
+
+  function getDaysBetween(sStr, eStr) {
+    if (!sStr || !eStr || sStr === 'N/A' || eStr === 'N/A') return 0;
+    let s = new Date(sStr);
+    let e = new Date(eStr);
+    if (isNaN(s.getTime()) || isNaN(e.getTime())) return 0;
+    let diff = Math.round((e - s) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 0;
+  }
+
+  function computeDynamicRowValues(row) {
+    let p = cleanNum(getVal(row, "Principal Amount"));
+    
+    let chRate = parseRatePercent(getVal(row, "Monthly IR (Cheque)"));
+    if (chRate > 0.15 && !getVal(row, "Monthly IR (Cheque)").includes('%')) chRate /= 100;
+    
+    let caRate = parseRatePercent(getVal(row, "Monthly IR (Cash)"));
+    if (caRate > 0.15 && !getVal(row, "Monthly IR (Cash)").includes('%')) caRate /= 100;
+    
+    let totalRate = chRate + caRate;
+
+    let sDate = getVal(row, "Start Date (Current FY)");
+    let eDate = getVal(row, "Next payment date");
+    let days = getDaysBetween(sDate, eDate);
+
+    let dueAmt = 0;
+    if (days > 0 && totalRate > 0) {
+      dueAmt = Math.round(p * (totalRate / 30) * days);
+    } else {
+      dueAmt = cleanNum(getVal(row, "Next due amount"));
+    }
+
+    let isTds = checkIsTdsEnabled(row);
+    let tdsAmt = isTds ? Math.round(dueAmt * 0.10) : 0;
+    let netAmt = dueAmt - tdsAmt;
+
+    let yrDays = getYearDays(sDate || eDate);
+    let fyCheque = Math.round(p * (chRate / 30) * yrDays);
+    let fyCash = Math.round(p * (caRate / 30) * yrDays);
+    let fyTotal = fyCheque + fyCash;
+
+    return { p, chRate, caRate, totalRate, days, dueAmt, isTds, tdsAmt, netAmt, yrDays, fyCheque, fyCash, fyTotal, sDate, eDate };
+  }
+
   function formatBrokerWithBhai(name) {
     if (!name || name === 'N/A') return 'Broker bhai';
     let trimmed = name.trim();
@@ -745,7 +799,6 @@
     return (tdsField === 'yes' || tdsField === 'y' || tdsField === '1');
   }
 
-  // Unified Payment Status Normalizer
   function getPaymentStatus(row) {
     let raw = (getVal(row, "Latest Due Interest Paid Status") || getVal(row, "Payment Status") || getVal(row, "Status") || "").trim();
     let lower = raw.toLowerCase();
@@ -761,7 +814,6 @@
     return raw || 'Paid';
   }
 
-  // Unified Status Badge Renderer
   function getStatusBadge(status) {
     let st = (status || '').toString().trim();
     let lower = st.toLowerCase();
@@ -774,7 +826,6 @@
     return `<span class="badge badge-orange">${st || 'Pending'}</span>`;
   }
 
-  // Click Handler for Single-Firm Row WhatsApp Buttons (Itemized Tables)
   function handleRowWAClick(event, firmName, status) {
     let st = (status || '').toString().trim().toLowerCase();
     if (st === 'paid' || (st.includes('paid') && !st.includes('pend') && !st.includes('due') && !st.includes('unpaid'))) {
@@ -785,32 +836,6 @@
     return true;
   }
 
-  // Single Firm WA Link Construction with New Single-Firm Formatting
-  function buildHinglishWALink(brokerName, firmName, amountNum, phoneStr, isTds) {
-    let bName = formatBrokerWithBhai(brokerName);
-    let dueAmt = cleanNum(amountNum);
-    let dueStr = dueAmt > 0 ? formatINR(dueAmt) : 'scheduled interest amount';
-    
-    let msg = "";
-    if (isTds && dueAmt > 0) {
-      let tdsAmt = Math.round(dueAmt * 0.10);
-      let netAmt = dueAmt - tdsAmt;
-      msg = `Hi ${bName}\nBelow interest pending \n\nName:\n*${firmName}*\nDue: *${formatINR(dueAmt)}*\nTDS: *${formatINR(tdsAmt)}*\nNet: *${formatINR(netAmt)}*\n\nRequest you to kindly check and get it processed.\nThanks.`;
-    } else {
-      msg = `Hi ${bName}\nBelow interest pending \n\nName:\n*${firmName}*\nDue: *${dueStr}*\n\nRequest you to kindly check and get it processed.\nThanks.`;
-    }
-    
-    let cleanPhone = (phoneStr || '').toString().replace(/[^0-9]/g, '');
-    if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
-
-    if (cleanPhone) {
-      return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
-    } else {
-      return `https://wa.me/?text=${encodeURIComponent(msg)}`;
-    }
-  }
-
-  // Single Firm WA Click Safety Prompt (Firm View Card)
   function handleSingleFirmWAClick(event) {
     const selectedFirm = document.getElementById('party-select').value;
     const matchingRows = businessRecords.filter(r => getVal(r, "Money Lent To") === selectedFirm);
@@ -836,38 +861,29 @@
     let msg = "";
 
     if (matchingRows.length === 1) {
-      let row = matchingRows[0];
-      let dueAmt = cleanNum(getVal(row, "Next due amount"));
-      let isTds = checkIsTdsEnabled(row);
-
-      if (isTds && dueAmt > 0) {
-        let tdsAmt = Math.round(dueAmt * 0.10);
-        let netAmt = dueAmt - tdsAmt;
-        msg = `Hi ${bName}\nBelow interest pending \n\nName:\n*${selectedFirm}*\nDue: *${formatINR(dueAmt)}*\nTDS: *${formatINR(tdsAmt)}*\nNet: *${formatINR(netAmt)}*\n\nRequest you to kindly check and get it processed.\nThanks.`;
+      let calc = computeDynamicRowValues(matchingRows[0]);
+      if (calc.isTds && calc.dueAmt > 0) {
+        msg = `Hi ${bName}\nBelow interest pending \n\nName:\n*${selectedFirm}*\nDue: *${formatINR(calc.dueAmt)}*\nTDS: *${formatINR(calc.tdsAmt)}*\nNet: *${formatINR(calc.netAmt)}*\n\nRequest you to kindly check and get it processed.\nThanks.`;
       } else {
-        let dueStr = dueAmt > 0 ? formatINR(dueAmt) : 'scheduled interest amount';
+        let dueStr = calc.dueAmt > 0 ? formatINR(calc.dueAmt) : 'scheduled interest amount';
         msg = `Hi ${bName}\nBelow interest pending \n\nName:\n*${selectedFirm}*\nDue: *${dueStr}*\n\nRequest you to kindly check and get it processed.\nThanks.`;
       }
     } else {
-      // Multi-loan entry for single firm (e.g. Gunjan + Suresh HUF)
       let items = [];
       let totalDue = 0, totalTds = 0, totalNet = 0;
       let hasAnyTds = false;
 
       matchingRows.forEach(r => {
         let family = getVal(r, "Family Member") || "Family";
-        let dueAmt = cleanNum(getVal(r, "Next due amount"));
-        let isTds = checkIsTdsEnabled(r);
+        let calc = computeDynamicRowValues(r);
 
-        if (isTds) {
+        if (calc.isTds) {
           hasAnyTds = true;
-          let tdsAmt = Math.round(dueAmt * 0.10);
-          let netAmt = dueAmt - tdsAmt;
-          totalDue += dueAmt; totalTds += tdsAmt; totalNet += netAmt;
-          items.push(`• *${family}:*\n  Due: *${formatINR(dueAmt)}*\n  TDS: *${formatINR(tdsAmt)}*\n  Net: *${formatINR(netAmt)}*`);
+          totalDue += calc.dueAmt; totalTds += calc.tdsAmt; totalNet += calc.netAmt;
+          items.push(`• *${family}:*\n  Due: *${formatINR(calc.dueAmt)}*\n  TDS: *${formatINR(calc.tdsAmt)}*\n  Net: *${formatINR(calc.netAmt)}*`);
         } else {
-          totalDue += dueAmt; totalNet += dueAmt;
-          items.push(`• *${family}:*\n  Due: *${formatINR(dueAmt)}*`);
+          totalDue += calc.dueAmt; totalNet += calc.dueAmt;
+          items.push(`• *${family}:*\n  Due: *${formatINR(calc.dueAmt)}*`);
         }
       });
 
@@ -892,7 +908,6 @@
     return false;
   }
 
-  // Consolidated Broker WA Click Handler
   function handleConsolidatedWAClick(event, brokerName) {
     if (!brokerName || brokerName === 'N/A') {
       event.preventDefault();
@@ -918,7 +933,6 @@
     let cleanPhone = (phoneStr || '').toString().replace(/[^0-9]/g, '');
     if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
 
-    // Group pending rows by firm name
     let firmGroupMap = {};
     pendingFirms.forEach(r => {
       let firm = getVal(r, "Money Lent To");
@@ -934,18 +948,15 @@
       let subItems = [];
       rows.forEach(r => {
         let family = getVal(r, "Family Member") || "Family";
-        let dueAmt = cleanNum(getVal(r, "Next due amount"));
-        let isTds = checkIsTdsEnabled(r);
+        let calc = computeDynamicRowValues(r);
 
-        if (isTds) {
+        if (calc.isTds) {
           hasAnyTdsInBroker = true;
-          let tdsAmt = Math.round(dueAmt * 0.10);
-          let netAmt = dueAmt - tdsAmt;
-          totalDue += dueAmt; totalTds += tdsAmt; totalNet += netAmt;
-          subItems.push(`• ${family}:\n  Due: *${formatINR(dueAmt)}*\n  TDS: *${formatINR(tdsAmt)}*\n  Net: *${formatINR(netAmt)}*`);
+          totalDue += calc.dueAmt; totalTds += calc.tdsAmt; totalNet += calc.netAmt;
+          subItems.push(`• ${family}:\n  Due: *${formatINR(calc.dueAmt)}*\n  TDS: *${formatINR(calc.tdsAmt)}*\n  Net: *${formatINR(calc.netAmt)}*`);
         } else {
-          totalDue += dueAmt; totalNet += dueAmt;
-          subItems.push(`• ${family}:\n  Due: *${formatINR(dueAmt)}*`);
+          totalDue += calc.dueAmt; totalNet += calc.dueAmt;
+          subItems.push(`• ${family}:\n  Due: *${formatINR(calc.dueAmt)}*`);
         }
       });
       firmBlocks.push(`*${firmName}*\n` + subItems.join('\n'));
@@ -1190,17 +1201,25 @@
     const firstRow = matchingRows[0];
     const rawBroker = getVal(firstRow, "Broker");
     const rawPhone = getVal(firstRow, "Broker Phone");
-    const tdsField = getVal(firstRow, "Does Party Deduct TDS").toLowerCase();
-    const isTdsYes = (tdsField === 'yes' || tdsField === 'y' || tdsField === '1');
+    const isTdsYes = checkIsTdsEnabled(firstRow);
 
     let familyMap = {};
     let totalPrincipal = 0;
+    let nextDueAmountSum = 0;
+    let fullChequeTotal = 0;
+    let fullCashTotal = 0;
+    let fullGrandTotal = 0;
 
     matchingRows.forEach(r => {
       let member = getVal(r, "Family Member") || "Unknown";
-      let amt = cleanNum(getVal(r, "Principal Amount"));
-      familyMap[member] = (familyMap[member] || 0) + amt;
-      totalPrincipal += amt;
+      let calc = computeDynamicRowValues(r);
+      
+      familyMap[member] = (familyMap[member] || 0) + calc.p;
+      totalPrincipal += calc.p;
+      nextDueAmountSum += calc.dueAmt;
+      fullChequeTotal += calc.fyCheque;
+      fullCashTotal += calc.fyCash;
+      fullGrandTotal += calc.fyTotal;
     });
 
     let familySplitText = Object.entries(familyMap)
@@ -1213,10 +1232,6 @@
     let formattedTotalRate = (Math.round(totalRateNum * 100) / 100) + '%';
 
     let paymentStatus = getPaymentStatus(firstRow);
-
-    let fullChequeTotal = matchingRows.reduce((sum, r) => sum + cleanNum(getVal(r, "Full Yr 365 Days Int (Cheque)")), 0);
-    let fullCashTotal = matchingRows.reduce((sum, r) => sum + cleanNum(getVal(r, "Full Yr 365 Days Int (Cash)")), 0);
-    let fullGrandTotal = matchingRows.reduce((sum, r) => sum + cleanNum(getVal(r, "Full Yr 365 Days Int (Total)")), 0);
 
     document.getElementById('info-amount').innerText = formatINR(totalPrincipal);
     document.getElementById('info-family-split').innerHTML = familySplitText || 'N/A';
@@ -1237,11 +1252,8 @@
     let daysBeforeRaw = getVal(firstRow, "Days before next payment");
     let daysBeforeNum = cleanNum(daysBeforeRaw);
     
-    let nextDueAmountSum = matchingRows.reduce((sum, r) => sum + cleanNum(getVal(r, "Next due amount")), 0);
-    let formattedDueAmt = nextDueAmountSum > 0 ? formatINR(nextDueAmountSum) : 'N/A';
-
     document.getElementById('info-next-payment').innerText = nextPaymentDate;
-    document.getElementById('info-next-due-amount').innerText = formattedDueAmt;
+    document.getElementById('info-next-due-amount').innerText = nextDueAmountSum > 0 ? formatINR(nextDueAmountSum) : 'N/A';
 
     const daysBeforeEl = document.getElementById('info-days-before');
     const daysBeforeRowEl = document.getElementById('info-days-before-row');
@@ -1310,19 +1322,17 @@
       let firmName = getVal(record, "Money Lent To");
       if (firmName) uniqueFirmNames.add(firmName);
 
-      let principal = cleanNum(getVal(record, "Principal Amount"));
+      let calc = computeDynamicRowValues(record);
       let mode = getVal(record, "CASH / CHEQUE").toLowerCase();
       let deployed = getVal(record, "Currently Deployed ?").toLowerCase();
 
-      if (mode === 'cash') { totalCash += principal; } else { totalCheque += principal; }
-      totalLent += principal;
+      if (mode === 'cash') { totalCash += calc.p; } else { totalCheque += calc.p; }
+      totalLent += calc.p;
 
-      let fyCheque = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cheque)"));
-      let fyCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cash)"));
-      let fyTotal = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Total)"));
-
-      const isTdsEnabled = checkIsTdsEnabled(record);
-      let fyTds = (deployed === 'maybe' || !isTdsEnabled) ? 0 : (fyCheque * 0.10);
+      let fyCheque = (deployed === 'maybe') ? 0 : calc.fyCheque;
+      let fyCash = (deployed === 'maybe') ? 0 : calc.fyCash;
+      let fyTotal = (deployed === 'maybe') ? 0 : calc.fyTotal;
+      let fyTds = (deployed === 'maybe' || !calc.isTds) ? 0 : Math.round(fyCheque * 0.10);
 
       annualCheque += fyCheque;
       annualCash += fyCash;
@@ -1330,22 +1340,20 @@
       annualTds += fyTds;
 
       if (mode === 'cheque') {
-        if (isTdsEnabled) { chequeWithTds += principal; } else { chequeWithoutTds += principal; }
+        if (calc.isTds) { chequeWithTds += calc.p; } else { chequeWithoutTds += calc.p; }
       }
 
       let brokerKey = getVal(record, "Broker") || 'N/A';
-      brokerMap[brokerKey] = (brokerMap[brokerKey] || 0) + principal;
+      brokerMap[brokerKey] = (brokerMap[brokerKey] || 0) + calc.p;
 
       let frequencyKey = getVal(record, "Interest Due Frequency") || 'N/A';
-      frequencyMap[frequencyKey] = (frequencyMap[frequencyKey] || 0) + principal;
+      frequencyMap[frequencyKey] = (frequencyMap[frequencyKey] || 0) + calc.p;
 
       let pStatus = getPaymentStatus(record);
-      statusMap[pStatus] = (statusMap[pStatus] || 0) + principal;
+      statusMap[pStatus] = (statusMap[pStatus] || 0) + calc.p;
 
       let familyMember = getVal(record, "Family Member") || "Unknown";
-      let chRate = parseRatePercent(getVal(record, "Monthly IR (Cheque)"));
-      let caRate = parseRatePercent(getVal(record, "Monthly IR (Cash)"));
-      let combinedRateNum = Math.round((chRate + caRate) * 100) / 100;
+      let combinedRateNum = Math.round((calc.chRate + calc.caRate) * 100) / 100;
       let nextPayDate = getVal(record, "Next payment date") || 'N/A';
       let paymentFrequency = getVal(record, "Interest Due Frequency") || 'N/A';
       let daysBeforeRaw = getVal(record, "Days before next payment");
@@ -1353,15 +1361,15 @@
       let daysBeforeBadge = daysBeforeRaw
         ? ((daysBeforeNum <= 7 && daysBeforeNum >= 0) ? `<span class="badge badge-orange">${daysBeforeRaw}</span>` : daysBeforeRaw)
         : 'N/A';
-      let nextDueAmount = cleanNum(getVal(record, "Next due amount"));
+      
       let broker = getVal(record, "Broker") || 'N/A';
       let brokerPhone = getVal(record, "Broker Phone");
 
-      let waLink = buildHinglishWALink(broker, firmName, nextDueAmount, brokerPhone, isTdsEnabled);
+      let waLink = buildHinglishWALink(broker, firmName, calc.dueAmt, brokerPhone, calc.isTds);
 
       allFirmsRows.push({
         firmName, familyMember,
-        amount: principal,
+        amount: calc.p,
         rate: combinedRateNum,
         rateLabel: combinedRateNum + '%',
         fyInterest: fyTotal,
@@ -1369,7 +1377,7 @@
         nextPayment: nextPayDate,
         daysBefore: daysBeforeNum,
         daysBeforeBadge,
-        nextDueAmount,
+        nextDueAmount: calc.dueAmt,
         paymentStatus: pStatus,
         broker,
         waLink,
@@ -1567,7 +1575,6 @@
       if (deployed === "maybe") return;
 
       let principalAmount = cleanNum(getVal(row, "Principal Amount"));
-      let mode = getVal(row, "CASH / CHEQUE").toLowerCase();
 
       let chequeRateStr = getVal(row, "Monthly IR (Cheque)");
       let chequeMonthlyRate = cleanNum(chequeRateStr);
@@ -1579,10 +1586,10 @@
 
       const isTdsEnabled = checkIsTdsEnabled(row);
 
-      let chequeGross = principalAmount * chequeMonthlyRate / 30 * finalDays;
-      let chequeTds = isTdsEnabled ? (chequeGross * 0.10) : 0;
+      let chequeGross = Math.round(principalAmount * chequeMonthlyRate / 30 * finalDays);
+      let chequeTds = isTdsEnabled ? Math.round(chequeGross * 0.10) : 0;
       let chequeNet = chequeGross - chequeTds;
-      let cashInt = principalAmount * cashMonthlyRate / 30 * finalDays;
+      let cashInt = Math.round(principalAmount * cashMonthlyRate / 30 * finalDays);
 
       totalChequeGross += chequeGross;
       totalChequeTds += chequeTds;
@@ -1622,16 +1629,16 @@
 
       businessRecords.forEach(record => {
         let firmName = getVal(record, "Money Lent To");
-        let totalAmt = cleanNum(getVal(record, "Principal Amount"));
+        let calc = computeDynamicRowValues(record);
         let mode = getVal(record, "CASH / CHEQUE").toLowerCase();
         let deployed = getVal(record, "Currently Deployed ?").toLowerCase();
 
-        let chequeAmt = (mode === 'cash') ? 0 : totalAmt;
-        let cashAmt = (mode === 'cheque') ? 0 : totalAmt;
+        let chequeAmt = (mode === 'cash') ? 0 : calc.p;
+        let cashAmt = (mode === 'cheque') ? 0 : calc.p;
 
-        let fyCheque = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cheque)"));
-        let fyCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cash)"));
-        let fyTotal = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Total)"));
+        let fyCheque = (deployed === 'maybe') ? 0 : calc.fyCheque;
+        let fyCash = (deployed === 'maybe') ? 0 : calc.fyCash;
+        let fyTotal = (deployed === 'maybe') ? 0 : calc.fyTotal;
 
         let curCheque = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Income (Cheque)"));
         let curCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Income (Cash)"));
@@ -1640,8 +1647,6 @@
         let pStatus = getPaymentStatus(record);
         let brokerVal = getVal(record, "Broker") || "N/A";
         let brokerPhone = getVal(record, "Broker Phone");
-        let nextDueAmt = cleanNum(getVal(record, "Next due amount"));
-        let isTdsEnabled = checkIsTdsEnabled(record);
 
         if (!firmGroupMap[firmName]) {
           firmGroupMap[firmName] = {
@@ -1655,15 +1660,15 @@
             statuses: [],
             brokers: [],
             brokerPhone: brokerPhone,
-            nextDueAmt: nextDueAmt,
-            isTds: isTdsEnabled,
+            nextDueAmt: calc.dueAmt,
+            isTds: calc.isTds,
             hasMaybe: false
           };
         }
 
         firmGroupMap[firmName].chequeAmt += chequeAmt;
         firmGroupMap[firmName].cashAmt += cashAmt;
-        firmGroupMap[firmName].totalAmt += totalAmt;
+        firmGroupMap[firmName].totalAmt += calc.p;
         firmGroupMap[firmName].fyCheque += fyCheque;
         firmGroupMap[firmName].fyCash += fyCash;
         firmGroupMap[firmName].fyTotal += fyTotal;
@@ -1677,7 +1682,7 @@
 
         totalChequeLent += chequeAmt;
         totalCashLent += cashAmt;
-        totalLentSum += totalAmt;
+        totalLentSum += calc.p;
 
         totalFullCheque += fyCheque;
         totalFullCash += fyCash;
@@ -1722,20 +1727,20 @@
       businessRecords.forEach(record => {
         if (getVal(record, "Family Member") === selectedMember) {
           let firmName = getVal(record, "Money Lent To");
-          let totalAmt = cleanNum(getVal(record, "Principal Amount"));
+          let calc = computeDynamicRowValues(record);
           let mode = getVal(record, "CASH / CHEQUE").toLowerCase();
           let deployed = getVal(record, "Currently Deployed ?").toLowerCase();
 
-          let chequeAmt = (mode === 'cash') ? 0 : totalAmt;
-          let cashAmt = (mode === 'cheque') ? 0 : totalAmt;
+          let chequeAmt = (mode === 'cash') ? 0 : calc.p;
+          let cashAmt = (mode === 'cheque') ? 0 : calc.p;
 
           let mChequeRate = getVal(record, "Monthly IR (Cheque)") || '0%';
           let mCashRate = getVal(record, "Monthly IR (Cash)") || '0%';
           let mTotalRate = getVal(record, "Monthly IR Total") || '0%';
 
-          let fyCheque = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cheque)"));
-          let fyCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Cash)"));
-          let fyTotal = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Full Yr 365 Days Int (Total)"));
+          let fyCheque = (deployed === 'maybe') ? 0 : calc.fyCheque;
+          let fyCash = (deployed === 'maybe') ? 0 : calc.fyCash;
+          let fyTotal = (deployed === 'maybe') ? 0 : calc.fyTotal;
 
           let curCheque = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Income (Cheque)"));
           let curCash = (deployed === 'maybe') ? 0 : cleanNum(getVal(record, "Current Yr Income (Cash)"));
@@ -1743,7 +1748,7 @@
 
           totalChequeLent += chequeAmt;
           totalCashLent += cashAmt;
-          totalLentSum += totalAmt;
+          totalLentSum += calc.p;
 
           totalFullCheque += fyCheque;
           totalFullCash += fyCash;
@@ -1762,15 +1767,13 @@
 
           let brokerVal = getVal(record, "Broker") || "N/A";
           let brokerPhone = getVal(record, "Broker Phone");
-          let nextDueAmt = cleanNum(getVal(record, "Next due amount"));
-          let isTdsEnabled = checkIsTdsEnabled(record);
-          let waLink = buildHinglishWALink(brokerVal, firmName, nextDueAmt, brokerPhone, isTdsEnabled);
+          let waLink = buildHinglishWALink(brokerVal, firmName, calc.dueAmt, brokerPhone, calc.isTds);
 
           familyRows.push({
             firmName,
             chequeAmt,
             cashAmt,
-            totalAmt,
+            totalAmt: calc.p,
             rateLabel: `${mChequeRate} / ${mCashRate} / <b>${mTotalRate}</b>`,
             fyTotal,
             fyLabel: `${formatINR(fyCheque)} / ${formatINR(fyCash)} / <b>${formatINR(fyTotal)}</b>`,
