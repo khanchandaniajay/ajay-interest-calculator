@@ -527,7 +527,7 @@
               <th class="sortable-th" data-key="firmName" data-type="text" data-label="Firm Name" onclick="sortAllFirmsTable('firmName','text')">Firm Name</th>
               <th class="sortable-th" data-key="familyMember" data-type="text" data-label="Family Member" onclick="sortAllFirmsTable('familyMember','text')">Family Member</th>
               <th class="sortable-th" data-key="amount" data-type="number" data-label="Amount Lent" onclick="sortAllFirmsTable('amount','number')">Amount Lent</th>
-              <th class="sortable-th" data-key="rate" data-type="number" data-label="Monthly Rate" onclick="sortAllFirmsTable('rate','number')">Monthly Rate</th>
+              <th class="sortable-th" data-key="rateLabel" data-type="text" data-label="Monthly Rate" onclick="sortAllFirmsTable('rateLabel','text')">Monthly Rate</th>
               <th class="sortable-th" data-key="fyInterest" data-type="number" data-label="Full Yr Interest" onclick="sortAllFirmsTable('fyInterest','number')">Full Yr Interest</th>
               <th class="sortable-th" data-key="paymentFrequency" data-type="text" data-label="Payment Frequency" onclick="sortAllFirmsTable('paymentFrequency','text')">Payment Frequency</th>
               <th class="sortable-th" data-key="nextPayment" data-type="text" data-label="Next Payment" onclick="sortAllFirmsTable('nextPayment','text')">Next Payment</th>
@@ -676,7 +676,7 @@
 </div>
 
 <script>
- // Reverted to secure Published URLs to avoid CORS / Google Login blocks
+  // Reverted to secure Published URLs to avoid CORS / Google Login blocks
   const SHEET_DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTE8Ga_ayS7dMQ3novYHY9WtJFqaIPIqopKjz6s9qT5wwsWfPGXyBhe0tuEn4eKkJz1DjK1gVbYXvgN/pub?gid=81907815&single=true&output=csv&_t=" + Date.now();
   const TAX_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTE8Ga_ayS7dMQ3novYHY9WtJFqaIPIqopKjz6s9qT5wwsWfPGXyBhe0tuEn4eKkJz1DjK1gVbYXvgN/pub?gid=481574565&single=true&output=csv&_t=" + Date.now();
 
@@ -734,7 +734,21 @@
     });
   };
 
-  // ================= FORWARD PREPAID CALCULATION ENGINE =================
+  // ================= BULLETPROOF DECIMAL PARSER & ENGINE =================
+  // This helper completely resolves the 100x mathematical bug
+  function getDecimalRate(rateStr) {
+    if (!rateStr) return 0;
+    let str = rateStr.toString().trim();
+    let num = parseFloat(str.replace(/[^0-9.-]/g, ''));
+    if (isNaN(num)) return 0;
+    
+    // If the raw text contains a % OR if someone enters "1" instead of "0.01"
+    if (str.includes('%') || num > 0.15) {
+      return num / 100;
+    }
+    return num;
+  }
+
   function parseFlexibleDate(dateInput) {
     if (!dateInput) return null;
     if (dateInput instanceof Date) return isNaN(dateInput.getTime()) ? null : dateInput;
@@ -779,12 +793,9 @@
   function computeDynamicRowValues(row) {
     let p = cleanNum(getVal(row, "Principal Amount"));
     
-    let chRate = parseRatePercent(getVal(row, "Monthly IR (Cheque)"));
-    if (chRate > 0.15 && !getVal(row, "Monthly IR (Cheque)").includes('%')) chRate /= 100;
-    
-    let caRate = parseRatePercent(getVal(row, "Monthly IR (Cash)"));
-    if (caRate > 0.15 && !getVal(row, "Monthly IR (Cash)").includes('%')) caRate /= 100;
-    
+    // Mathematically safe decimal extraction (e.g., 0.01)
+    let chRate = getDecimalRate(getVal(row, "Monthly IR (Cheque)"));
+    let caRate = getDecimalRate(getVal(row, "Monthly IR (Cash)"));
     let totalRate = chRate + caRate;
 
     let paymentDateObj = parseFlexibleDate(getVal(row, "Next payment date"));
@@ -1056,6 +1067,7 @@
     return isNaN(parsed) ? 0 : parsed;
   }
 
+  // Display parser (returns whole numbers like 1 for 1%) to keep UI intact
   function parseRatePercent(rateStr) {
     if (!rateStr) return 0;
     let cleaned = rateStr.toString().replace(/[^0-9.%-]/g, "");
@@ -1261,6 +1273,7 @@
       .map(([mem, amt]) => `${mem}: ${formatINR(amt)}`)
       .join('<br>');
 
+    // Safely preserving UI visual labels
     let chRateNum = parseRatePercent(getVal(firstRow, "Monthly IR (Cheque)"));
     let caRateNum = parseRatePercent(getVal(firstRow, "Monthly IR (Cash)"));
     let totalRateNum = chRateNum + caRateNum;
@@ -1388,7 +1401,11 @@
       statusMap[pStatus] = (statusMap[pStatus] || 0) + calc.p;
 
       let familyMember = getVal(record, "Family Member") || "Unknown";
-      let combinedRateNum = Math.round((calc.chRate + calc.caRate) * 100) / 100;
+      
+      // Multiplying mathematical 0.01 by 10000 to display standard "1%" visually
+      let combinedRateNum = Math.round(calc.totalRate * 10000) / 100;
+      let rateLabel = combinedRateNum + '%';
+
       let nextPayDate = getVal(record, "Next payment date") || 'N/A';
       let paymentFrequency = getVal(record, "Interest Due Frequency") || 'N/A';
       let daysBeforeRaw = getVal(record, "Days before next payment");
@@ -1405,8 +1422,7 @@
       allFirmsRows.push({
         firmName, familyMember,
         amount: calc.p,
-        rate: combinedRateNum,
-        rateLabel: combinedRateNum + '%',
+        rateLabel: rateLabel,
         fyInterest: fyTotal,
         paymentFrequency,
         nextPayment: nextPayDate,
@@ -1611,13 +1627,8 @@
 
       let principalAmount = cleanNum(getVal(row, "Principal Amount"));
 
-      let chequeRateStr = getVal(row, "Monthly IR (Cheque)");
-      let chequeMonthlyRate = cleanNum(chequeRateStr);
-      if (!chequeRateStr.includes('%') && chequeMonthlyRate > 0.15) chequeMonthlyRate /= 100;
-
-      let cashRateStr = getVal(row, "Monthly IR (Cash)");
-      let cashMonthlyRate = cleanNum(cashRateStr);
-      if (!cashRateStr.includes('%') && cashMonthlyRate > 0.15) cashMonthlyRate /= 100;
+      let chequeMonthlyRate = getDecimalRate(getVal(row, "Monthly IR (Cheque)"));
+      let cashMonthlyRate = getDecimalRate(getVal(row, "Monthly IR (Cash)"));
 
       const isTdsEnabled = checkIsTdsEnabled(row);
 
