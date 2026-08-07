@@ -676,9 +676,9 @@
 </div>
 
 <script>
-  // Direct Export URL bypassing published CDN cache
-  const SHEET_DATA_URL = "https://docs.google.com/spreadsheets/d/1keZRwZsEDX6jnp3ktmHs9e9vSQght2d9c7apu2s5hPo/export?format=csv&gid=81907815&_t=" + Date.now();
-  const TAX_SHEET_URL = "https://docs.google.com/spreadsheets/d/1keZRwZsEDX6jnp3ktmHs9e9vSQght2d9c7apu2s5hPo/export?format=csv&gid=481574565&_t=" + Date.now();
+ // Reverted to secure Published URLs to avoid CORS / Google Login blocks
+  const SHEET_DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTE8Ga_ayS7dMQ3novYHY9WtJFqaIPIqopKjz6s9qT5wwsWfPGXyBhe0tuEn4eKkJz1DjK1gVbYXvgN/pub?gid=81907815&single=true&output=csv&_t=" + Date.now();
+  const TAX_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTE8Ga_ayS7dMQ3novYHY9WtJFqaIPIqopKjz6s9qT5wwsWfPGXyBhe0tuEn4eKkJz1DjK1gVbYXvgN/pub?gid=481574565&single=true&output=csv&_t=" + Date.now();
 
   const ALL_FIRMS_VALUE = "All Firms (Consolidated)";
 
